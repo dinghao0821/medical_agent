@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专业复核工作站 — SAGE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery.fancytree@2.38/dist/skin-win8/ui.fancytree.min.css">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+        }
+        /* ---- Sidebar ---- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+        }
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin: 0;
+        }
+        .sidebar-header .badge {
+            font-size: 11px;
+            background: rgba(34,197,94,0.2);
+            color: #22c55e;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+        .sidebar-nav .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-nav .nav-item:hover,
+        .sidebar-nav .nav-item.active {
+            background: rgba(255,255,255,0.06);
+            color: #f8fafc;
+            border-left-color: var(--primary);
+        }
+        .nav-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            font-size: 13px;
+        }
+        .sidebar-footer .user-info {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+        }
+        .sidebar-footer .avatar {
+            width: 36px; height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 14px;
+        }
+        /* ---- Main ---- */
+        .main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 24px 32px;
+            min-height: 100vh;
+        }
+        .main h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+        .main .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+        /* ---- Stats row ---- */
+        .stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex; align-items: center; gap: 16px;
+        }
+        .stat-card .icon-box {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #1e293b; }
+        .stat-card .stat-label { font-size: 13px; color: #64748b; }
+        /* ---- Case list ---- */
+        .case-list { display: flex; flex-direction: column; gap: 12px; }
+        .case-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex; align-items: center; gap: 20px;
+        }
+        .case-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 12px rgba(37,99,235,0.1);
+        }
+        .case-card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .case-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .case-meta { font-size: 12px; color: #94a3b8; }
+        .case-card .flex-1 { flex: 1; min-width: 0; }
+        .case-card .arrow { color: #94a3b8; font-size: 14px; }
+        /* ---- Detail panel ---- */
+        .detail-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+        .detail-panel.show { display: block; }
+        .detail-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .detail-body { padding: 24px; }
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            background: #f8fafc;
+        }
+        .ai-box {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .ai-box .ai-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #92400e;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .action-buttons { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-approve, .btn-reject {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: #fff;
+        }
+        .btn-approve { background: var(--success); }
+        .btn-reject { background: var(--danger); }
+        .btn-approve:hover { background: #15803d; }
+        .btn-reject:hover { background: #b91c1c; }
+        .btn-approve:disabled, .btn-reject:disabled {
+            opacity: 0.5; cursor: not-allowed;
+        }
+        /* ---- Comments ---- */
+        .comments-box {
+            margin-top: 16px;
+        }
+        .comments-box label {
+            font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; display: block;
+        }
+        .comments-box textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        /* ---- Auth overlay ---- */
+        .auth-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        .auth-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            width: 420px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .auth-card h3 {
+            font-size: 24px; font-weight: 700; color: #1e293b; margin-bottom: 4px; text-align: center;
+        }
+        .auth-card .sub { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 24px; }
+        .auth-card input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        .auth-card input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .auth-card button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .auth-card button:hover { background: #1d4ed8; }
+        .auth-card .switch { text-align: center; margin-top: 16px; font-size: 13px; color: #64748b; }
+        .auth-card .switch a { color: var(--primary); cursor: pointer; text-decoration: none; }
+        .auth-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none; }
+        .auth-error.show { display: block; }
+        /* ---- Empty state ---- */
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+        }
+        .empty-state .icon { font-size: 56px; color: #cbd5e1; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; color: #64748b; margin-bottom: 8px; }
+        .empty-state p { font-size: 14px; color: #94a3b8; }
+        /* ---- Spinner ---- */
+        .spinner-sm {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ---- Toast ---- */
+        .toast-container {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .toast-msg {
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.25s ease-out;
+            max-width: 400px;
+        }
+        .toast-success { background: var(--success); }
+        .toast-error { background: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+        <h3 id="authTitle">医生登录</h3>
+        <p class="sub" id="authSub">登录后复核老年人医学影像与专项评估结果</p>
+        <div class="auth-error" id="authError"></div>
+        <div id="authForm"></div>
+        <div class="switch">
+            <span id="switchText">没有账号？</span> <a id="switchLink" href="#">注册医生</a>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #334155;">
+            <a href="/" style="color:#94a3b8;font-size:13px;text-decoration:none;"><i class="fas fa-arrow-left me-1"></i>返回首页</a>
+            <a href="/app" style="color:#94a3b8;font-size:13px;text-decoration:none;">患者登录入口<i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h2><i class="fas fa-stethoscope me-2"></i>SAGE 专业复核工作站</h2>
+        <span class="badge mt-1">Medical Review</span>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-item active" data-tab="pending">
+            <i class="fas fa-clock"></i> 待审核 <span class="nav-badge" id="pendingCount">0</span>
+        </div>
+        <div class="nav-item" data-tab="history">
+            <i class="fas fa-history"></i> 审核历史
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="avatar" id="avatarPlaceholder">?</div>
+            <div>
+                <div style="color:#f8fafc;font-weight:600;" id="sidebarUsername">未登录</div>
+                <div style="font-size:11px;color:#64748b;" id="sidebarRole">-</div>
+            </div>
+        </div>
+        <a href="#" onclick="logout()" style="color:#94a3b8;text-decoration:none;font-size:12px;">
+            <i class="fas fa-sign-out-alt me-1"></i>退出登录
+        </a>
+    </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+    <h1 id="pageTitle">待审核病例</h1>
+    <p class="subtitle" id="pageSubtitle">请结合老年人的功能、认知、环境与照护背景审慎复核 AI 辅助结果</p>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+            <div class="icon-box" style="background:rgba(245,158,11,0.12);color:var(--warning);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statPending">0</div>
+                <div class="stat-label">待审核</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon-box" style="background:rgba(34,197,94,0.12);color:var(--success);">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statApproved">0</div>
+                <div class="stat-label">今日通过</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon-box" style="background:rgba(220,38,38,0.12);color:var(--danger);">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statRejected">0</div>
+                <div class="stat-label">今日驳回</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending case list -->
+    <div class="case-list" id="caseList"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="icon"><i class="fas fa-check-circle"></i></div>
+        <h3>当前没有待复核项目</h3>
+        <p>有新的老年人影像或专项评估结果时会实时刷新</p>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div>
+                <strong id="detailCaseUid" style="font-size:16px;">#</strong>
+                <span id="detailCaseTime" class="case-meta ms-2"></span>
+            </div>
+            <span id="detailCaseStatus" class="case-type-badge"></span>
+        </div>
+        <div class="detail-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label style="font-size:13px;font-weight:600;color:#475569;">原始病理影像</label>
+                    <img id="detailImage" class="detail-image" src="" alt="病理影像">
+                </div>
+                <div class="col-md-6">
+                    <label style="font-size:13px;font-weight:600;color:#475569;">AI 分割结果</label>
+                    <img id="detailResultImage" class="detail-image" src="" alt="AI分析结果" style="display:none;">
+                    <div id="noResultImage" class="text-muted" style="display:none; padding:40px; text-align:center; border:1px dashed #e2e8f0; border-radius:8px;">
+                        <i class="fas fa-image" style="font-size:32px;"></i><br>无分割结果图
+                    </div>
+                </div>
+            </div>
+            <!-- AI diagnosis box -->
+            <div class="ai-box">
+                <div class="ai-label"><i class="fas fa-robot me-1"></i> AI 初步分析 — <span id="detailAiAgent"></span></div>
+                <div id="detailAiDiagnosis" style="font-size:14px;color:#78350f;white-space:pre-wrap;"></div>
+            </div>
+            <!-- Patient info -->
+            <div style="font-size:13px;color:#64748b;margin-bottom:8px;">
+                患者：<strong id="detailPatient"></strong> &nbsp;|&nbsp; 类型：<strong id="detailImageType"></strong>
+            </div>
+            <!-- Action area -->
+            <div class="comments-box">
+                <label>审核备注 <span style="color:#94a3b8;font-weight:400;">（选填）</span></label>
+                <textarea id="reviewComments" placeholder="输入专业意见、环境/辅具建议或驳回原因..."></textarea>
+            </div>
+            <div class="action-buttons" id="actionButtons">
+                <button class="btn-approve" id="btnApprove" onclick="reviewCase('approved')">
+                    <i class="fas fa-check me-1"></i> 审核通过
+                </button>
+                <button class="btn-reject" id="btnReject" onclick="reviewCase('rejected')">
+                    <i class="fas fa-times me-1"></i> 驳回
+                </button>
+            </div>
+            <div id="actionResult" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ===================== Auth =====================
+const API = '/auth';
+let token = localStorage.getItem('doctor_token') || '';
+let currentUser = null;
+let authMode = 'login'; // 'login' | 'register'
+let selectedCaseUid = null;
+
+function authFetch(url, opts = {}) {
+    opts.headers = opts.headers || {};
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    return fetch(url, opts);
+}
+
+function showAuth(mode = 'login') {
+    authMode = mode;
+    const overlay = document.getElementById('authOverlay');
+    const form = document.getElementById('authForm');
+    const title = document.getElementById('authTitle');
+    const subtitle = document.getElementById('authSub');
+    const switchText = document.getElementById('switchText');
+    const switchLink = document.getElementById('switchLink');
+
+    if (mode === 'login') {
+        title.textContent = '医生登录';
+        subtitle.textContent = '使用您的医生账号登录审核控制台';
+        form.innerHTML = `
+            <input type="text" id="authUsername" placeholder="用户名">
+            <input type="password" id="authPassword" placeholder="密码">
+            <button onclick="doLogin()">登 录</button>
+        `;
+        switchText.textContent = '没有账号？';
+        switchLink.textContent = '注册医生';
+    } else {
+        title.textContent = '医生注册';
+        subtitle.textContent = '需要有效的邀请码';
+        form.innerHTML = `
+            <input type="text" id="authUsername" placeholder="用户名">
+            <input type="password" id="authPassword" placeholder="密码">
+            <input type="email" id="authEmail" placeholder="邮箱（选填）">
+            <input type="text" id="authInviteCode" placeholder="邀请码">
+            <button onclick="doRegister()">注 册</button>
+        `;
+        switchText.textContent = '已有账号？';
+        switchLink.textContent = '立即登录';
+    }
+    document.getElementById('authError').classList.remove('show');
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+        const el = document.getElementById('authUsername');
+        if (el) el.focus();
+    }, 100);
+}
+
+function switchAuthMode(e) {
+    e.preventDefault();
+    showAuth(authMode === 'login' ? 'register' : 'login');
+}
+
+document.getElementById('switchLink').addEventListener('click', switchAuthMode);
+
+async function doLogin() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+    const errEl = document.getElementById('authError');
+    if (!username || !password) {
+        errEl.textContent = '请填写用户名和密码';
+        errEl.classList.add('show');
+        return;
+    }
+    try {
+        const resp = await fetch(API + '/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.access_token) {
+            if (data.role !== 'doctor' && data.role !== 'admin') {
+                errEl.textContent = '该账号不是医生账号，请从患者入口登录。';
+                errEl.classList.add('show');
+                return;
+            }
+            token = data.access_token;
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.setItem('doctor_token', token);
+            currentUser = { username, role: data.role || 'doctor' };
+            loadApp();
+        } else {
+            errEl.textContent = data.detail || data.response || '登录失败';
+            errEl.classList.add('show');
+        }
+    } catch (e) {
+        errEl.textContent = '网络错误，请重试';
+        errEl.classList.add('show');
+    }
+}
+
+async function doRegister() {
+    const username = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+    const email = document.getElementById('authEmail').value.trim();
+    const inviteCode = document.getElementById('authInviteCode').value.trim();
+    const errEl = document.getElementById('authError');
+    if (!username || !password || !inviteCode) {
+        errEl.textContent = '请填写用户名、密码和邀请码';
+        errEl.classList.add('show');
+        return;
+    }
+    try {
+        const resp = await fetch(API + '/register/doctor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, email: email || null, invite_code: inviteCode })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            toast('注册成功！请登录并上传执业资格证等待审核', 'success');
+            showAuth('login');
+        } else {
+            errEl.textContent = data.detail || data.response || '注册失败';
+            errEl.classList.add('show');
+        }
+    } catch (e) {
+        errEl.textContent = '网络错误，请重试';
+        errEl.classList.add('show');
+    }
+}
+
+// Rebuild the auth overlay's base DOM structure (title/sub/error/form/switch).
+// Needed because renderLicenceGate() replaces overlay.innerHTML entirely, so
+// after that point showAuth()'s getElementById lookups would otherwise fail.
+function _resetAuthOverlayDom() {
+    const overlay = document.getElementById('authOverlay');
+    overlay.innerHTML = `
+        <div class="auth-card">
+            <h3 id="authTitle">医生登录</h3>
+            <p class="sub" id="authSub">登录后复核老年人医学影像与专项评估结果</p>
+            <div class="auth-error" id="authError"></div>
+            <div id="authForm"></div>
+            <div class="switch">
+                <span id="switchText">没有账号？</span> <a id="switchLink" href="#">注册医生</a>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #334155;">
+                <a href="/" style="color:#94a3b8;font-size:13px;text-decoration:none;"><i class="fas fa-arrow-left me-1"></i>返回首页</a>
+                <a href="/app" style="color:#94a3b8;font-size:13px;text-decoration:none;">患者登录入口<i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    `;
+    document.getElementById('switchLink').addEventListener('click', switchAuthMode);
+}
+
+async function logout() {
+    if (token) {
+        try { await authFetch(API + '/logout', { method: 'POST' }); } catch (e) {}
+    }
+    token = '';
+    currentUser = null;
+    localStorage.removeItem('doctor_token');
+    document.getElementById('detailPanel').classList.remove('show');
+    _resetAuthOverlayDom();
+    showAuth('login');
+}
+
+// ===================== Load & Poll =====================
+async function loadApp() {
+    // Verify token
+    try {
+        const resp = await authFetch(API + '/me');
+        if (!resp.ok) throw new Error('Token invalid');
+        const data = await resp.json();
+        currentUser = data;
+    } catch (e) {
+        token = '';
+        localStorage.removeItem('doctor_token');
+        showAuth('login');
+        return;
+    }
+    // Doctors must have an APPROVED practising licence before reviewing cases.
+    if ((currentUser.role || 'doctor') === 'doctor') {
+        const okLicence = await ensureDoctorApproved();
+        if (!okLicence) return; // licence gate shown; do not load the queue
+    }
+
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('sidebarUsername').textContent = currentUser.username || '未知';
+    document.getElementById('sidebarRole').textContent = (currentUser.role || 'doctor').toUpperCase();
+    document.getElementById('avatarPlaceholder').textContent = (currentUser.username || '?')[0].toUpperCase();
+
+    await loadPendingCases();
+    // Auto-poll every 15 seconds
+    setInterval(loadPendingCases, 15000);
+}
+
+// Returns true when the doctor is approved; otherwise renders the licence gate
+// (upload / pending / rejected) inside the auth overlay and returns false.
+async function ensureDoctorApproved() {
+    let info;
+    try {
+        const resp = await authFetch(API + '/doctor/status');
+        info = await resp.json();
+    } catch (e) { info = null; }
+    const st = info && info.doctor_status;
+    if (st === 'approved') return true;
+    renderLicenceGate(st || 'unsubmitted', info && info.license_comments);
+    return false;
+}
+
+function renderLicenceGate(status, comments) {
+    const overlay = document.getElementById('authOverlay');
+    overlay.style.display = 'flex';
+    let msg = '', showUpload = true;
+    if (status === 'pending') {
+        msg = '您的执业资格证已提交，正在等待管理员审核。审核通过后即可查看待审病例。';
+        showUpload = false;
+    } else if (status === 'rejected') {
+        msg = '很抱歉，您上传的执业资格证未通过审核' + (comments ? ('：' + comments) : '') + '。请重新上传。';
+    } else {
+        msg = '为保障医疗安全，注册医生须上传本人执业资格证书，经管理员审核通过后方可查看老年人评估与医学影像资料。';
+    }
+    overlay.innerHTML = '<div class="auth-card">'
+        + '<h3>医生执业资格认证</h3>'
+        + '<p class="sub">' + msg + '</p>'
+        + (showUpload ? (
+            '<input type="file" id="licenceFile" accept="image/*,.pdf" style="margin:12px 0;color:#e2e8f0;">'
+            + '<button class="auth-btn" id="licenceUploadBtn">上传资格证并提交审核</button>'
+          ) : '<button class="auth-btn" id="licenceRefreshBtn">刷新审核状态</button>')
+        + '<div class="auth-error" id="licenceError"></div>'
+        + '<div style="margin-top:14px;text-align:center;"><a href="#" id="licenceLogout" style="color:#94a3b8;">退出登录</a></div>'
+        + '</div>';
+    const up = document.getElementById('licenceUploadBtn');
+    if (up) up.addEventListener('click', uploadLicence);
+    const rf = document.getElementById('licenceRefreshBtn');
+    if (rf) rf.addEventListener('click', loadApp);
+    document.getElementById('licenceLogout').addEventListener('click', function(e){ e.preventDefault(); logout(); });
+}
+
+async function uploadLicence() {
+    const fileEl = document.getElementById('licenceFile');
+    const errEl = document.getElementById('licenceError');
+    if (!fileEl.files || !fileEl.files[0]) { errEl.textContent = '请选择资格证文件'; errEl.classList.add('show'); return; }
+    const fd = new FormData();
+    fd.append('license', fileEl.files[0]);
+    try {
+        const resp = await authFetch(API + '/doctor/license', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (resp.ok && data.status === 'success') {
+            toast('已提交，等待管理员审核', 'success');
+            renderLicenceGate('pending', null);
+        } else {
+            errEl.textContent = data.detail || data.response || '上传失败';
+            errEl.classList.add('show');
+        }
+    } catch (e) {
+        errEl.textContent = '网络错误，请重试';
+        errEl.classList.add('show');
+    }
+}
+
+async function loadPendingCases() {
+    try {
+        const resp = await authFetch('/review/pending');
+        const data = await resp.json();
+        if (data.status !== 'success') return;
+        const cases = data.cases || [];
+        renderCaseList(cases);
+        document.getElementById('pendingCount').textContent = cases.length;
+        document.getElementById('statPending').textContent = cases.length;
+    } catch (e) {
+        console.error('Load pending failed:', e);
+    }
+}
+
+function renderCaseList(cases) {
+    const listEl = document.getElementById('caseList');
+    const emptyEl = document.getElementById('emptyState');
+    if (cases.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = cases.map(c => {
+        const dateStr = c.created_at ? new Date(c.created_at).toLocaleString('zh-CN') : '-';
+        const typeLabel = getTypeLabel(c.image_type);
+        const typeColor = getTypeColor(c.image_type);
+        return `
+            <div class="case-card ${c.case_uid === selectedCaseUid ? 'selected' : ''}"
+                 onclick="selectCase('${c.case_uid}')">
+                <div style="font-size:13px;color:#64748b;min-width:80px;">${dateStr.split(' ')[0]}</div>
+                <div style="min-width:100px;">
+                    <span class="case-type-badge" style="background:${typeColor.bg};color:${typeColor.text};">${typeLabel}</span>
+                </div>
+                <div class="flex-1">
+                    <div style="font-weight:600;font-size:14px;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        #${c.case_uid}
+                    </div>
+                    <div class="case-meta">患者: ${c.patient_username} · ${dateStr.split(' ')[1] || ''}</div>
+                </div>
+                <div class="case-meta">${c.ai_agent || ''}</div>
+                <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getTypeLabel(type) {
+    const map = {
+        'BRAIN_MRI': '脑部 MRI',
+        'CHEST_XRAY': '胸部 X光',
+        'SKIN_LESION': '皮肤病变',
+        'MEDICAL_IMAGE': '医学影像'
+    };
+    return map[type] || type || '医学影像';
+}
+
+function getTypeColor(type) {
+    const map = {
+        'BRAIN_MRI': { bg: 'rgba(147,51,234,0.12)', text: '#7c3aed' },
+        'CHEST_XRAY': { bg: 'rgba(37,99,235,0.12)', text: '#2563eb' },
+        'SKIN_LESION': { bg: 'rgba(245,158,11,0.12)', text: '#d97706' },
+    };
+    return map[type] || { bg: 'rgba(100,116,139,0.12)', text: '#64748b' };
+}
+
+async function selectCase(caseUid) {
+    selectedCaseUid = caseUid;
+    try {
+        const resp = await authFetch('/review/' + caseUid);
+        const data = await resp.json();
+        if (data.status !== 'success') return;
+        const c = data.case;
+        document.getElementById('detailCaseUid').textContent = '#' + c.case_uid;
+        document.getElementById('detailCaseTime').textContent = c.created_at ? new Date(c.created_at).toLocaleString('zh-CN') : '';
+        document.getElementById('detailPatient').textContent = c.patient_username || '-';
+        document.getElementById('detailImageType').textContent = getTypeLabel(c.image_type);
+        document.getElementById('detailAiAgent').textContent = c.ai_agent || '-';
+        document.getElementById('detailAiDiagnosis').textContent = c.ai_diagnosis || '无AI分析结果';
+
+        // Status badge
+        const statusEl = document.getElementById('detailCaseStatus');
+        if (c.status === 'pending') {
+            statusEl.className = 'case-type-badge';
+            statusEl.style.cssText = 'background:rgba(245,158,11,0.12);color:#d97706;';
+            statusEl.textContent = '待审核';
+        } else if (c.status === 'approved') {
+            statusEl.className = 'case-type-badge';
+            statusEl.style.cssText = 'background:rgba(34,197,94,0.12);color:#16a34a;';
+            statusEl.textContent = '已通过';
+        } else {
+            statusEl.className = 'case-type-badge';
+            statusEl.style.cssText = 'background:rgba(220,38,38,0.12);color:#dc2626;';
+            statusEl.textContent = '已驳回';
+        }
+
+        // Image
+        document.getElementById('detailImage').src = '/review/image/' + caseUid;
+        // Result image
+        const resultImg = document.getElementById('detailResultImage');
+        const noResult = document.getElementById('noResultImage');
+        if (c.result_image) {
+            resultImg.src = '/' + c.result_image.replace(/\\/g, '/');
+            resultImg.style.display = 'block';
+            noResult.style.display = 'none';
+        } else {
+            resultImg.style.display = 'none';
+            noResult.style.display = 'block';
+        }
+
+        // Action buttons visibility
+        const actionButtons = document.getElementById('actionButtons');
+        const actionResult = document.getElementById('actionResult');
+        const commentsBox = document.getElementById('reviewComments').closest('.comments-box');
+
+        if (c.status === 'pending') {
+            actionButtons.style.display = 'flex';
+            commentsBox.style.display = 'block';
+            actionResult.style.display = 'none';
+            document.getElementById('reviewComments').value = '';
+        } else {
+            actionButtons.style.display = 'none';
+            commentsBox.style.display = 'none';
+            let resultHtml = '<div class="alert ';
+            if (c.status === 'approved') {
+                resultHtml += 'alert-success';
+                resultHtml += '"><i class="fas fa-check-circle me-2"></i><strong>已审核通过</strong>';
+            } else {
+                resultHtml += 'alert-warning';
+                resultHtml += '"><i class="fas fa-times-circle me-2"></i><strong>已驳回</strong>';
+            }
+            resultHtml += '<br><small>审核医生：' + (c.doctor_username || '-') +
+                ' · ' + (c.reviewed_at ? new Date(c.reviewed_at).toLocaleString('zh-CN') : '-') + '</small>';
+            if (c.doctor_comments) resultHtml += '<br><small>备注：' + c.doctor_comments + '</small>';
+            resultHtml += '</div>';
+            actionResult.innerHTML = resultHtml;
+            actionResult.style.display = 'block';
+        }
+
+        document.getElementById('detailPanel').classList.add('show');
+        document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+
+        // Highlight selected card
+        document.querySelectorAll('.case-card').forEach(el => el.classList.remove('selected'));
+        const selectedCard = document.querySelector(`.case-card[onclick*="${caseUid}"]`);
+        if (selectedCard) selectedCard.classList.add('selected');
+
+    } catch (e) {
+        console.error('Select case failed:', e);
+        toast('加载病例详情失败', 'error');
+    }
+}
+
+async function reviewCase(verdict) {
+    if (!selectedCaseUid) return;
+    const comments = document.getElementById('reviewComments').value.trim();
+    const btnApprove = document.getElementById('btnApprove');
+    const btnReject = document.getElementById('btnReject');
+
+    btnApprove.disabled = true;
+    btnReject.disabled = true;
+    btnApprove.innerHTML = '<span class="spinner-sm me-2"></span>提交中...';
+    btnReject.innerHTML = '<span class="spinner-sm me-2"></span>提交中...';
+
+    try {
+        const resp = await authFetch('/review/' + selectedCaseUid, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ verdict, comments })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            toast(verdict === 'approved' ? '审核通过，诊断结果已推送至患者' : '已驳回，结果已推送至患者', 'success');
+            await selectCase(selectedCaseUid); // Refresh detail to show result
+            await loadPendingCases(); // Refresh list
+        } else {
+            toast(data.detail || '操作失败', 'error');
+        }
+    } catch (e) {
+        toast('网络错误，请重试', 'error');
+    } finally {
+        btnApprove.disabled = false;
+        btnReject.disabled = false;
+        btnApprove.innerHTML = '<i class="fas fa-check me-1"></i> 审核通过';
+        btnReject.innerHTML = '<i class="fas fa-times me-1"></i> 驳回';
+    }
+}
+
+// ===================== Helpers =====================
+function toast(msg, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast-msg toast-' + type;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; }, 3000);
+    setTimeout(() => el.remove(), 3300);
+}
+
+// ===================== Init =====================
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        // TODO: load history when history tab is clicked
+    });
+});
+
+// Check if already logged in
+if (token) {
+    loadApp();
+} else {
+    showAuth('login');
+}
+</script>
+
+</body>
+</html>

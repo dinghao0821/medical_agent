@@ -1,0 +1,3304 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAGE — 老年医学智能辅助平台</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/chromatography.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .chat-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eaeaea;
+            background-color: #f8f9fa;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Multi-conversation list */
+        .conversation-list { max-height: 240px; overflow-y: auto; }
+        .conversation-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 10px; margin-bottom: 2px; border-radius: 8px;
+            cursor: pointer; background: transparent; border: 0;
+            transition: background .15s;
+        }
+        .conversation-item:hover { background: #e9e9eb; }
+        .conversation-item.active { background: #e3e3e5; }
+        .conversation-item .conv-title {
+            flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            font-size: 0.88rem; margin-right: 6px;
+        }
+        .conversation-item .conv-del {
+            opacity: 0; border: none; background: transparent; color: #b02a37;
+            cursor: pointer; font-size: 0.8rem; transition: opacity .15s;
+        }
+        .conversation-item:hover .conv-del { opacity: 1; }
+        .chat-footer {
+            padding: 15px;
+            border-top: 1px solid #eaeaea;
+            background-color: #f8f9fa;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+        .message {
+            max-width: 80%;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            color: #000;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+            color: #000;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        .agent-tag {
+            display: inline-block;
+            background-color: #ebf5ff;
+            color: #0d6efd;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .message-input {
+            border-radius: 20px;
+            padding: 10px 15px;
+            resize: none;
+        }
+        .file-upload-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-upload-btn {
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+        .file-upload-input {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+        .preview-container {
+            margin-top: 10px;
+            display: none;
+        }
+        .preview-image {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 5px;
+        }
+        .result-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 5px;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .image-side-by-side {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-container {
+            flex: 1;
+            min-width: 200px;
+        }
+        .image-caption {
+            font-size: 0.85em;
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+        }
+        .thinking {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .dot {
+            height: 8px;
+            width: 8px;
+            margin-right: 5px;
+            background-color: #0d6efd;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .dot:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .dot:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+        .sidebar {
+            background-color: #f7f7f8;
+            padding: 12px;
+            border-radius: 12px;
+            height: 90vh;
+            overflow-y: auto;
+        }
+        .sidebar h5 {
+            margin: 2px 8px 16px;
+            padding: 0;
+            border: 0;
+            font-weight: 600;
+        }
+        .sidebar h6 {
+            margin-left: 10px;
+            color: #6b6b6b;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .sidebar-menu-item {
+            width: 100%;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #2f2f2f;
+            font-size: 0.9rem;
+            text-align: left;
+            transition: background-color .15s ease;
+        }
+        .sidebar-menu-item:hover,
+        .sidebar-menu-item:focus {
+            background-color: #e9e9eb;
+            color: #171717;
+            box-shadow: none;
+        }
+        .sidebar-menu-item i {
+            width: 18px;
+            color: #5f6368;
+            text-align: center;
+        }
+        .sidebar-clear {
+            color: #6b6b6b;
+        }
+        .sidebar-clear:hover,
+        .sidebar-clear:focus {
+            color: #b42318;
+            background-color: #f4e8e7;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                height: auto;
+                margin-bottom: 15px;
+            }
+        }
+        
+        /* Table styling for markdown tables */
+        .message table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        .message th, .message td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .message th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        .message tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .message tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Auth overlay */
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #auth-overlay.show { display: flex; }
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 28px;
+        }
+        .auth-card h4 { margin-bottom: 6px; }
+        .auth-tabs { display: flex; gap: 8px; margin: 18px 0; }
+        .auth-tabs button { flex: 1; }
+        .auth-error {
+            display: none;
+            color: #b02a37;
+            background: #f8d7da;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+        }
+        .user-bar { display: flex; align-items: center; gap: 10px; }
+        .user-badge {
+            font-size: 0.85em;
+            color: #0d6efd;
+            background: #ebf5ff;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login / Register overlay (shown only when backend auth is enabled and user is not logged in) -->
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <h4 id="auth-title"><i class="fas fa-user-shield me-2"></i>登录</h4>
+            <small class="text-muted" id="auth-subtitle">请登录以使用 SAGE 老年医学智能辅助平台</small>
+
+            <div class="auth-tabs">
+                <button type="button" class="btn btn-primary" id="tab-login">登录</button>
+                <button type="button" class="btn btn-outline-primary" id="tab-register">注册</button>
+            </div>
+
+            <div class="auth-error" id="auth-error"></div>
+
+            <!-- Login form -->
+            <form id="login-form">
+                <div class="mb-3">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="login-username" autocomplete="username" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-control" id="login-password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="login-submit">登录</button>
+            </form>
+
+            <!-- Register form -->
+            <form id="register-form" style="display:none;">
+                <div class="mb-3">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="reg-username" autocomplete="username" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">邮箱（选填）</label>
+                    <input type="email" class="form-control" id="reg-email" autocomplete="email">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-control" id="reg-password" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="register-submit">注册并登录</button>
+                <small class="text-muted d-block mt-2">首个注册的用户将成为管理员。</small>
+            </form>
+
+            <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+                <a href="/" class="small text-muted text-decoration-none">
+                    <i class="fas fa-arrow-left me-1"></i>返回首页
+                </a>
+                <a href="/doctor" class="small text-muted text-decoration-none">
+                    医生登录入口<i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 mb-3">
+                <div class="sidebar">
+                    <h5>
+                        <i class="fas fa-robot me-2"></i>
+                        SAGE
+                    </h5>
+
+                    <!-- Multi-conversation panel -->
+                    <div class="conversation-panel mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-comments me-2"></i>会话</h6>
+                            <button id="new-chat-btn" class="sidebar-menu-item" style="width:auto;min-height:32px;padding:6px 8px;" title="新建会话">
+                                <i class="fas fa-pen-to-square"></i> 新建
+                            </button>
+                        </div>
+                        <ul id="conversation-list" class="conversation-list list-unstyled mb-0"></ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="mb-1">功能</h6>
+                        <div class="sidebar-menu">
+                            <button class="sidebar-menu-item" id="open-cases-btn" title="我的评估案例">
+                                <i class="far fa-folder-open"></i><span>评估案例</span>
+                            </button>
+                            <button class="sidebar-menu-item" id="open-family-btn" title="家属陪伴">
+                                <i class="far fa-heart"></i><span>家属陪伴</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="mb-1">专项评估</h6>
+                        <div class="sidebar-menu">
+                            <button type="button" class="sidebar-menu-item elderly-quick" data-assessment="adl"><i class="fas fa-person-walking"></i><span>失能 / ADL</span></button>
+                            <button type="button" class="sidebar-menu-item elderly-quick" data-assessment="cognition"><i class="fas fa-brain"></i><span>失智风险初筛</span></button>
+                            <button type="button" class="sidebar-menu-item elderly-quick" data-assessment="environment"><i class="fas fa-house"></i><span>居住环境评价</span></button>
+                            <button type="button" class="sidebar-menu-item elderly-quick" data-assessment="assistive_device"><i class="fas fa-wheelchair"></i><span>康复辅具适配</span></button>
+                        </div>
+                    </div>
+
+                    <button id="clear-chat" class="sidebar-menu-item sidebar-clear mt-3">
+                        <i class="far fa-trash-can"></i><span>清空会话</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Container -->
+            <div class="col-md-9">
+                <div class="chat-container">
+                    <div class="chat-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="fas fa-stethoscope me-2"></i>
+                                SAGE 老年医学智能辅助平台
+                            </h5>
+                            <small class="text-muted">失能失智筛查 · 居住环境评价 · 康复辅助器具适配 · 专业人员复核</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-bar" id="user-bar" style="display:none;">
+                                <span class="user-badge" id="user-badge"></span>
+                                <button class="btn btn-sm btn-outline-secondary" id="logout-btn">
+                                    <i class="fas fa-sign-out-alt me-1"></i>退出
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="chat-body" class="chat-body">
+                        <div class="message assistant-message">
+                            <div class="agent-tag">系统</div>
+                            <p>您好！我是 SAGE 老年医学智能助手，可协助进行健康咨询、医学信息分析、失能/失智风险筛查、居住环境安全评价及辅助器具适配。</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-footer">
+                        <form id="chat-form" class="d-flex align-items-end">
+                            <div class="file-upload-container me-2">
+                                <button type="button" class="file-upload-btn btn btn-primary">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                                <input type="file" class="file-upload-input" id="image-upload" accept="image/*">
+                            </div>
+                            
+                            <div class="flex-grow-1">
+                                <div class="preview-container" id="preview-container">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <img id="preview-image" class="preview-image me-2" src="">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="remove-image">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <textarea id="message-input" class="form-control message-input" rows="1" placeholder="请描述老年人的功能、认知、居住环境或辅具需求..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary rounded-circle ms-2" style="width: 40px; height: 40px;">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== Elderly Assessment Cases Modal ===================== -->
+    <div class="modal fade" id="casesModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-folder-open me-2"></i>评估案例</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- List view -->
+                    <div id="cases-view-list">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex gap-2 align-items-center">
+                                <select id="cases-filter-status" class="form-select form-select-sm" style="width:auto;">
+                                    <option value="">全部状态</option>
+                                    <option value="pending_review">待复核</option>
+                                    <option value="approved">已通过</option>
+                                    <option value="revision_required">需修改</option>
+                                    <option value="rejected">已驳回</option>
+                                </select>
+                                <button id="cases-refresh-btn" class="btn btn-sm btn-outline-secondary" title="刷新">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <button id="cases-new-btn" class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus me-1"></i>新建评估
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>编号</th><th>类型</th><th>对象</th><th>风险</th><th>状态</th><th>创建时间</th><th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cases-tbody">
+                                    <tr><td colspan="7" class="text-center text-muted py-3">加载中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="cases-pagination" class="d-flex gap-1 justify-content-center"></div>
+                    </div>
+
+                    <!-- New assessment view -->
+                    <div id="cases-view-new" style="display:none;">
+                        <div class="d-flex align-items-center mb-3">
+                            <button id="new-back-btn" class="btn btn-sm btn-outline-secondary me-2"><i class="fas fa-arrow-left"></i></button>
+                            <h6 class="mb-0">新建评估</h6>
+                        </div>
+                        <input type="hidden" id="new-parent-uid">
+                        <div class="mb-2">
+                            <label class="form-label">评估类型</label>
+                            <select id="new-assessment-type" class="form-select form-select-sm">
+                                <option value="adl">ADL 失能筛查</option>
+                                <option value="cognition">认知/失智风险初筛</option>
+                                <option value="environment">居住环境安全评价</option>
+                                <option value="assistive_device">康复辅助器具适配</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">评估对象编号（选填）</label>
+                            <input type="text" id="new-subject-code" class="form-control form-control-sm" placeholder="如：老人姓名/编号">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">复评日期（选填，ISO格式）</label>
+                            <input type="date" id="new-followup-date" class="form-control form-control-sm">
+                        </div>
+                        <div class="alert alert-light border small mb-2">
+                            <i class="fas fa-circle-info me-1 text-primary"></i>
+                            请根据近 7 天的通常表现填写。建议由本人和熟悉其日常情况的照护者共同完成；急性疾病期结果需谨慎解释。
+                        </div>
+                        <div id="dynamic-form-items" class="mb-3"></div>
+                        <div id="assessment-preview" class="mb-3" style="display:none;"></div>
+                        <div class="d-flex gap-2">
+                            <button id="new-preview-btn" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-chart-simple me-1"></i>生成初步结果
+                            </button>
+                            <button id="new-submit-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-file-circle-plus me-1"></i>保存为正式案例
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Detail view -->
+                    <div id="cases-view-detail" style="display:none;">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center">
+                                <button id="detail-back-btn" class="btn btn-sm btn-outline-secondary me-2"><i class="fas fa-arrow-left"></i></button>
+                                <h6 class="mb-0">评估详情</h6>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button id="detail-followup-btn" class="btn btn-sm btn-outline-primary" style="display:none;">
+                                    <i class="fas fa-redo me-1"></i>发起复评
+                                </button>
+                                <button id="detail-report-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-file-download me-1"></i>下载报告
+                                </button>
+                            </div>
+                        </div>
+                        <div id="case-detail-content"></div>
+
+                        <div class="mt-3">
+                            <h6 class="small text-muted">附件</h6>
+                            <div id="detail-attachments-list" class="mb-2"></div>
+                            <div class="d-flex gap-2 align-items-center">
+                                <input type="file" id="attachment-file" class="form-control form-control-sm" style="max-width:220px;">
+                                <select id="attachment-category" class="form-select form-select-sm" style="max-width:140px;">
+                                    <option value="environment">环境照片</option>
+                                    <option value="device">辅具照片</option>
+                                    <option value="clinical">病历/诊断</option>
+                                    <option value="other">其他</option>
+                                </select>
+                                <button id="attachment-upload-btn" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-upload me-1"></i>上传
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="detail-review-section" class="mt-3 border-top pt-3" style="display:none;">
+                            <h6 class="small text-muted">专业复核（医生/管理员）</h6>
+                            <div class="mb-2">
+                                <select id="review-verdict" class="form-select form-select-sm" style="max-width:200px;">
+                                    <option value="approved">通过</option>
+                                    <option value="revision_required">需修改</option>
+                                    <option value="rejected">驳回</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <textarea id="review-comments" class="form-control form-control-sm" rows="2" placeholder="复核意见（选填）"></textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">建议复评日期（选填）</label>
+                                <input type="date" id="review-followup-date" class="form-control form-control-sm" style="max-width:200px;">
+                            </div>
+                            <button id="review-submit-btn" class="btn btn-sm btn-success">
+                                <i class="fas fa-gavel me-1"></i>提交复核
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== Family Care Companionship Modal ===================== -->
+    <div class="modal fade" id="familyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-heart me-2"></i>家属陪伴</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" id="family-tabs">
+                        <li class="nav-item"><button class="nav-link active family-tab-btn" data-tab="follow" type="button">关注码</button></li>
+                        <li class="nav-item"><button class="nav-link family-tab-btn" data-tab="elders" type="button">我关注的长辈</button></li>
+                        <li class="nav-item"><button class="nav-link family-tab-btn" data-tab="caregivers" type="button">关注我的家属</button></li>
+                        <li class="nav-item"><button class="nav-link family-tab-btn" data-tab="care" type="button">AI关怀频道</button></li>
+                        <li class="nav-item"><button class="nav-link family-tab-btn" data-tab="alerts" type="button">预警通知 <span id="alerts-badge" class="badge bg-danger" style="display:none;"></span></button></li>
+                    </ul>
+
+                    <!-- Tab: 关注码 -->
+                    <div class="family-tab-pane" data-tab="follow">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6>我是长辈：生成关注码</h6>
+                                <p class="small text-muted mb-2">生成一个6位数字码，念给家属，让他们输入即可关注您。24小时内有效。</p>
+                                <button id="gen-follow-code-btn" class="btn btn-sm btn-primary">生成关注码</button>
+                                <div id="follow-code-result" class="mt-2"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>我是家属：输入关注码</h6>
+                                <div class="d-flex gap-2 mb-2">
+                                    <input type="text" id="redeem-code-input" class="form-control form-control-sm" placeholder="请输入6位关注码" style="max-width:180px;">
+                                    <input type="text" id="redeem-relation-input" class="form-control form-control-sm" placeholder="您的关系（如：儿子）" style="max-width:180px;">
+                                    <button id="redeem-code-btn" class="btn btn-sm btn-success">关注</button>
+                                </div>
+                                <div id="redeem-code-result"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: 我关注的长辈 -->
+                    <div class="family-tab-pane" data-tab="elders" style="display:none;">
+                        <div id="elders-list" class="mb-3"><div class="text-center text-muted py-3">加载中...</div></div>
+                    </div>
+
+                    <!-- Tab: 关注我的家属 -->
+                    <div class="family-tab-pane" data-tab="caregivers" style="display:none;">
+                        <div id="caregivers-list"><div class="text-center text-muted py-3">加载中...</div></div>
+                    </div>
+
+                    <!-- Tab: AI关怀频道 -->
+                    <div class="family-tab-pane" data-tab="care" style="display:none;">
+                        <div id="care-messages" class="mb-3" style="max-height:360px; overflow-y:auto;"></div>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="care-reply-input" class="form-control form-control-sm" placeholder="回复关怀消息...">
+                            <button id="care-reply-btn" class="btn btn-sm btn-primary">发送</button>
+                        </div>
+                    </div>
+
+                    <!-- Tab: 预警通知 -->
+                    <div class="family-tab-pane" data-tab="alerts" style="display:none;">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button id="alerts-refresh-btn" class="btn btn-sm btn-outline-secondary"><i class="fas fa-sync-alt"></i> 刷新</button>
+                        </div>
+                        <div id="alerts-list"><div class="text-center text-muted py-3">加载中...</div></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reminder task modal (opened from an elder card in the "我关注的长辈" tab) -->
+    <div class="modal fade" id="reminderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">提醒任务</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="reminder-elder-username">
+                    <div id="reminder-existing-list" class="mb-3"></div>
+                    <hr>
+                    <h6 class="small text-muted">新建提醒任务</h6>
+                    <div class="mb-2">
+                        <select id="reminder-task-type" class="form-select form-select-sm">
+                            <option value="medication">服药提醒</option>
+                            <option value="mood">情绪问候</option>
+                            <option value="meal">饮食提醒</option>
+                            <option value="safety_checkin">安全巡查/活动提醒</option>
+                            <option value="follow_up">复诊/随访提醒</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                    <div class="mb-2" id="reminder-custom-prompt-wrap" style="display:none;">
+                        <textarea id="reminder-custom-prompt" class="form-control form-control-sm" rows="2" placeholder="自定义提醒内容，如：提醒爸爸浇花"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <select id="reminder-schedule-type" class="form-select form-select-sm">
+                            <option value="daily">每天</option>
+                            <option value="weekly">每周</option>
+                            <option value="once">仅一次</option>
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2 mb-2">
+                        <div id="reminder-time-wrap">
+                            <label class="form-label small">时间</label>
+                            <input type="time" id="reminder-time" class="form-control form-control-sm">
+                        </div>
+                        <div id="reminder-weekday-wrap" style="display:none;">
+                            <label class="form-label small">星期</label>
+                            <select id="reminder-weekday" class="form-select form-select-sm">
+                                <option value="0">周一</option><option value="1">周二</option><option value="2">周三</option>
+                                <option value="3">周四</option><option value="4">周五</option><option value="5">周六</option><option value="6">周日</option>
+                            </select>
+                        </div>
+                        <div id="reminder-datetime-wrap" style="display:none;">
+                            <label class="form-label small">日期时间</label>
+                            <input type="datetime-local" id="reminder-datetime" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                    <button id="reminder-submit-btn" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>创建任务
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <script>
+
+        // let mediaRecorder;
+        // let audioChunks = [];
+        // let isRecording = false;
+        // let audioContext;
+        // let currentAudio = null;  // Store a single audio instance
+        // // let elevenlabsApiKey = 'sk_4c9d3dfca9e183c7e8a7c0b9c6f7483e074ded17251e5fe7'; // Replace with your actual API key
+        // let selectedVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Default voice ID (Rachel)
+
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     const chatBody = document.getElementById('chat-body');
+        //     const chatForm = document.getElementById('chat-form');
+        //     const messageInput = document.getElementById('message-input');
+        //     const imageUpload = document.getElementById('image-upload');
+        //     const previewContainer = document.getElementById('preview-container');
+        //     const previewImage = document.getElementById('preview-image');
+        //     const removeImageBtn = document.getElementById('remove-image');
+        //     const clearChatBtn = document.getElementById('clear-chat');
+
+        //     // Add voice recording button to the UI
+        //     const fileUploadContainer = document.querySelector('.file-upload-container');
+        //     // const voiceButtonHTML = `
+        //     //     <button type="button" class="btn btn-warning rounded-circle ms-2" id="voice-record-btn" style="width: 40px; height: 40px;">
+        //     //         <i class="fas fa-microphone"></i>
+        //     //     </button>
+        //     // `;
+        //     const voiceButtonHTML = `
+        //         <button type="button" class="btn btn-warning rounded-circle ms-2 me-2" id="voice-record-btn" style="width: 40px; height: 40px;">
+        //             <i class="fas fa-microphone"></i>
+        //         </button>
+        //     `;
+        //     fileUploadContainer.insertAdjacentHTML('afterend', voiceButtonHTML);
+            
+        //     const voiceRecordBtn = document.getElementById('voice-record-btn');
+            
+        //     // Voice recording functionality
+        //     voiceRecordBtn.addEventListener('click', toggleRecording);
+            
+        //     // Initialize audio context
+        //     try {
+        //         window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        //         audioContext = new AudioContext();
+        //     } catch (e) {
+        //         console.error('Web Audio API is not supported in this browser');
+        //     }
+            
+        //     // We no longer need to store conversation history in frontend
+        //     // Only maintain display messages
+        //     let displayMessages = [];
+            
+        //     // Auto-resize textarea
+        //     messageInput.addEventListener('input', function() {
+        //         this.style.height = 'auto';
+        //         this.style.height = (this.scrollHeight) + 'px';
+        //     });
+            
+        //     // Handle image upload
+        //     imageUpload.addEventListener('change', function(e) {
+        //         if (e.target.files.length > 0) {
+        //             const file = e.target.files[0];
+        //             const reader = new FileReader();
+                    
+        //             reader.onload = function(e) {
+        //                 previewImage.src = e.target.result;
+        //                 previewContainer.style.display = 'block';
+        //             };
+                    
+        //             reader.readAsDataURL(file);
+        //         }
+        //     });
+            
+        //     // Remove image preview
+        //     removeImageBtn.addEventListener('click', function() {
+        //         imageUpload.value = '';
+        //         previewContainer.style.display = 'none';
+        //         previewImage.src = '';
+        //     });
+            
+        //     // Clear chat (only visual)
+        //     clearChatBtn.addEventListener('click', function() {
+        //         displayMessages = [];
+        //         chatBody.innerHTML = `
+        //             <div class="message assistant-message">
+        //                 <div class="agent-tag">System</div>
+        //                 <p>Hello! I'm your medical assistant. You can ask me health-related questions or upload medical images for analysis.</p>
+        //             </div>
+        //         `;
+        //     });
+            
+        //     // Handle form submission
+        //     chatForm.addEventListener('submit', async function(e) {
+        //         e.preventDefault();
+                
+        //         // Get message from input or transcribed text
+        //         const message = messageInput.value.trim();
+        //         if (!message && !imageUpload.files.length) return;
+                
+        //         // Store image data if available
+        //         let imageDataUrl = null;
+        //         if (imageUpload.files.length > 0) {
+        //             imageDataUrl = previewImage.src;
+        //         }
+                
+        //         // Add user message to chat
+        //         const userMessageElement = document.createElement('div');
+        //         userMessageElement.className = 'message user-message';
+                
+        //         // Create message content with image if available
+        //         let messageContent = `<p>${message}</p>`;
+        //         if (imageDataUrl) {
+        //             messageContent += `
+        //                 <div class="mt-2">
+        //                     <img src="${imageDataUrl}" alt="Uploaded image" class="img-fluid rounded" style="max-height: 200px;">
+        //                 </div>
+        //             `;
+        //         }
+                
+        //         userMessageElement.innerHTML = messageContent;
+        //         chatBody.appendChild(userMessageElement);
+                
+        //         // Add thinking indicator
+        //         const thinkingElement = document.createElement('div');
+        //         thinkingElement.className = 'message assistant-message thinking';
+        //         thinkingElement.innerHTML = `
+        //             <div class="dot"></div>
+        //             <div class="dot"></div>
+        //             <div class="dot"></div>
+        //         `;
+        //         chatBody.appendChild(thinkingElement);
+                
+        //         // Scroll to bottom
+        //         chatBody.scrollTop = chatBody.scrollHeight;
+                
+        //         // Clear input
+        //         messageInput.value = '';
+        //         messageInput.style.height = 'auto';
+                
+        //         // Create form data
+        //         const formData = new FormData();
+        //         formData.append('message', message);
+                
+        //         // Add image if available
+        //         if (imageUpload.files.length > 0) {
+        //             formData.append('file', imageUpload.files[0]);
+        //         }
+                
+        //         try {
+        //             // Send to backend
+        //             const response = await fetch('/send_message', {
+        //                 method: 'POST',
+        //                 body: formData,
+        //                 credentials: 'include' // Important for cookie handling
+        //             });
+                    
+        //             const data = await response.json();
+                    
+        //             // Remove thinking indicator
+        //             chatBody.removeChild(thinkingElement);
+                    
+        //             // Add response to chat
+        //             const assistantMessageElement = document.createElement('div');
+        //             assistantMessageElement.className = 'message assistant-message';
+                    
+        //             // Get clean text for TTS (without markdown)
+        //             const cleanText = removeMarkdown(data.response);
+                    
+        //             // Build HTML content for the response with audio controls
+        //             let assistantHtml = `
+        //                 <div class="agent-tag">${data.agent}</div>
+        //                 <div>${marked.parse(data.response)}</div>
+        //                 <div class="audio-controls mt-2">
+        //                     <button class="btn btn-sm btn-outline-primary play-tts-btn">
+        //                         <i class="fas fa-play"></i> Play Voice Response
+        //                     </button>
+        //                 </div>
+        //             `;
+
+        //             // After building the existing assistantHtml, add this:
+        //             if (data.agent.includes("HUMAN_VALIDATION")) {
+        //                 assistantHtml += `
+        //                     <div class="mt-3 p-3 border rounded bg-light">
+        //                         <p><strong>⚠️ Human Validation Required:</strong> Do you agree with this result?</p>
+        //                         <button class="btn btn-success btn-sm validate-btn" data-validation="yes">✔ Yes</button>
+        //                         <button class="btn btn-danger btn-sm validate-btn" data-validation="no">✖ No</button>
+        //                         <textarea class="form-control mt-2 validation-comments" rows="2" placeholder="Add comments (optional)"></textarea>
+        //                     </div>
+        //                 `;
+        //             }
+                    
+        //             // Add result image if it exists
+        //             if (data.result_image) {
+        //                 // If the skin lesion segmentation agent was used and both the user uploaded
+        //                 // an image and we have a result image, display them side by side
+        //                 if (data.agent === "SKIN_LESION_AGENT, HUMAN_VALIDATION" && imageDataUrl) {
+        //                     assistantHtml += `
+        //                         <div class="image-side-by-side">
+        //                             <div class="image-container">
+        //                                 <img src="${imageDataUrl}" alt="Original image" class="img-fluid rounded">
+        //                                 <div class="image-caption">Original Image</div>
+        //                             </div>
+        //                             <div class="image-container">
+        //                                 <img src="${data.result_image}" alt="Segmented image" class="img-fluid rounded">
+        //                                 <div class="image-caption">Segmentation Result</div>
+        //                             </div>
+        //                         </div>
+        //                     `;
+        //                 } else {
+        //                     // Otherwise just show the result image
+        //                     assistantHtml += `
+        //                         <div class="mt-3">
+        //                             <img src="${data.result_image}" alt="Result image" class="result-image">
+        //                         </div>
+        //                     `;
+        //                 }
+        //             }
+                    
+        //             assistantMessageElement.innerHTML = assistantHtml;
+        //             chatBody.appendChild(assistantMessageElement);
+
+        //             // Attach validation button events if human validation is required
+        //             if (data.agent.includes("HUMAN_VALIDATION")) {
+        //                 document.querySelectorAll('.validate-btn').forEach(button => {
+        //                     button.addEventListener('click', async function () {
+        //                         const validation = this.getAttribute('data-validation');
+        //                         // Use the closest container to get the textarea value
+        //                         const comments = this.closest('.p-3').querySelector('.validation-comments').value;
+        //                         await sendValidation(validation, comments);
+        //                     });
+        //                 });
+        //             }
+
+                    
+        //             // Get the play button and add click event to speak text
+        //             const playButton = assistantMessageElement.querySelector('.play-tts-btn');
+
+        //             playButton.addEventListener('click', async function () {
+        //                 // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
+        //                 const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
+
+        //                 // Disable the button while generating speech
+        //                 this.disabled = true;
+        //                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        //                 try {
+        //                     // Get the new audio URL
+        //                     const audioUrl = await generateSpeech(textForSpeech);
+
+        //                     // Stop and clean up previous audio if playing
+        //                     if (currentAudio) {
+        //                         currentAudio.pause();
+        //                         currentAudio.currentTime = 0;
+        //                         URL.revokeObjectURL(currentAudio.src);  // Free up memory
+        //                         currentAudio = null;  // Clear the reference
+        //                     }
+
+        //                     // Create a new audio element for the new speech
+        //                     currentAudio = new Audio(audioUrl);
+
+        //                     // Set event listeners for button updates
+        //                     currentAudio.onplay = () => {
+        //                         this.innerHTML = '<i class="fas fa-pause"></i> Pause';
+        //                         this.classList.remove('btn-outline-primary');
+        //                         this.classList.add('btn-primary');
+        //                         this.disabled = false;
+        //                     };
+
+        //                     currentAudio.onpause = () => {
+        //                         this.innerHTML = '<i class="fas fa-play"></i> Play';
+        //                         this.classList.remove('btn-primary');
+        //                         this.classList.add('btn-outline-primary');
+        //                     };
+
+        //                     currentAudio.onended = () => {
+        //                         this.innerHTML = '<i class="fas fa-play"></i> Play Again';
+        //                         this.classList.remove('btn-primary');
+        //                         this.classList.add('btn-outline-primary');
+        //                         URL.revokeObjectURL(audioUrl);  // Free memory after playback
+        //                         currentAudio = null;  // Ensure reference is cleared
+        //                     };
+
+        //                     // Toggle play/pause on button click
+        //                     this.onclick = () => {
+        //                         if (currentAudio && currentAudio.paused) {
+        //                             currentAudio.play();
+        //                         } else {
+        //                             currentAudio.pause();
+        //                         }
+        //                     };
+
+        //                     // Play the generated speech
+        //                     currentAudio.play();
+        //                 } catch (error) {
+        //                     console.error("TTS Error:", error);
+        //                     this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
+        //                     this.disabled = false;
+        //                 }
+        //             });
+
+                    
+        //             // Auto-play the voice response if needed
+        //             // Uncomment the next line to automatically play the voice response
+        //             // playButton.click();
+                    
+        //             // Store messages for display purposes only
+        //             displayMessages.push({
+        //                 role: "user",
+        //                 content: message,
+        //                 image: imageDataUrl
+        //             });
+                    
+        //             displayMessages.push({
+        //                 role: "assistant",
+        //                 content: data.response,
+        //                 agent: data.agent,
+        //                 resultImage: data.result_image
+        //             });
+                    
+        //             // Clear file upload preview
+        //             imageUpload.value = '';
+        //             previewContainer.style.display = 'none';
+                    
+        //         } catch (error) {
+        //             console.error("Error:", error);
+        //             // Remove thinking indicator
+        //             chatBody.removeChild(thinkingElement);
+                    
+        //             // Add error message
+        //             const errorElement = document.createElement('div');
+        //             errorElement.className = 'message assistant-message';
+        //             errorElement.innerHTML = `
+        //                 <div class="agent-tag">System</div>
+        //                 <p class="text-danger">Sorry, there was an error processing your request. Please try again.</p>
+        //             `;
+        //             chatBody.appendChild(errorElement);
+        //         }
+                
+        //         // Scroll to bottom again
+        //         chatBody.scrollTop = chatBody.scrollHeight;
+        //     });
+
+        //     // Allow sending message with Enter key
+        //     messageInput.addEventListener('keydown', function(e) {
+        //         if (e.key === 'Enter' && !e.shiftKey) {
+        //             e.preventDefault();
+        //             chatForm.dispatchEvent(new Event('submit'));
+        //         }
+        //     });
+        // });
+
+        // // Speech Recorder button function
+        // function toggleRecording() {
+        //     const voiceButton = document.getElementById('voice-record-btn');
+            
+        //     if (!isRecording) {
+        //         // Start recording
+        //         navigator.mediaDevices.getUserMedia({ audio: true })
+        //             .then(stream => {
+        //                 // mediaRecorder = new MediaRecorder(stream);
+        //                 mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        //                 audioChunks = [];
+                        
+        //                 mediaRecorder.addEventListener('dataavailable', event => {
+        //                     audioChunks.push(event.data);
+        //                 });
+                        
+        //                 mediaRecorder.addEventListener('stop', () => {
+        //                     // const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        //                     const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        //                     transcribeSpeech(audioBlob);
+                            
+        //                     // Reset UI
+        //                     voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        //                     voiceButton.classList.remove('btn-danger');
+        //                     voiceButton.classList.add('btn-warning');
+        //                 });
+                        
+        //                 // Start recording
+        //                 mediaRecorder.start();
+        //                 isRecording = true;
+                        
+        //                 // Update UI
+        //                 voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+        //                 voiceButton.classList.remove('btn-warning');
+        //                 voiceButton.classList.add('btn-danger');
+        //             })
+        //             .catch(error => {
+        //                 console.error('Error accessing microphone:', error);
+        //                 alert('Could not access microphone. Please check your browser permissions.');
+        //             });
+        //     } else {
+        //         // Stop recording
+        //         mediaRecorder.stop();
+        //         isRecording = false;
+                
+        //         // Update UI to show processing
+        //         voiceButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        //         voiceButton.disabled = true;
+                
+        //         // Each track needs to be stopped to turn off the microphone
+        //         mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        //     }
+        // }
+
+        // function transcribeSpeech(audioBlob) {
+        //     const voiceButton = document.getElementById('voice-record-btn');
+        //     const messageInput = document.getElementById('message-input');
+            
+        //     // Create a temporary element to display processing status
+        //     const statusElement = document.createElement('div');
+        //     statusElement.className = 'alert alert-info mt-2';
+        //     statusElement.innerHTML = 'Processing voice input...';
+        //     document.querySelector('.chat-footer').prepend(statusElement);
+            
+        //     // Always use server-side transcription for recorded audio
+        //     const formData = new FormData();
+        //     formData.append('audio', audioBlob);
+            
+        //     fetch('/transcribe', {
+        //         method: 'POST',
+        //         body: formData
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.transcript) {
+        //             messageInput.value = data.transcript;
+        //             messageInput.focus();
+        //         } else {
+        //             throw new Error('Transcription failed');
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Transcription error:', error);
+        //         statusElement.className = 'alert alert-danger mt-2';
+        //         statusElement.innerHTML = 'Failed to transcribe speech. Please try again or type your message.';
+        //     })
+        //     .finally(() => {
+        //         // Clean up
+        //         setTimeout(() => {
+        //             statusElement.remove();
+        //             voiceButton.disabled = false;
+        //             voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        //         }, 3000);
+        //     });
+        // }
+
+        // // Function to generate speech using ElevenLabs API
+        // // Function to generate speech using the secure backend
+        // async function generateSpeech(text) {
+        //     try {
+        //         const response = await fetch('/generate-speech', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify({
+        //                 text: text,
+        //                 voice_id: selectedVoiceId  // Replace with the correct voice ID
+        //             })
+        //         });
+
+        //         if (!response.ok) {
+        //             throw new Error(`HTTP error! status: ${response.status}`);
+        //         }
+
+        //         // Convert response to a playable audio blob
+        //         const audioBlob = await response.blob();
+        //         return URL.createObjectURL(audioBlob);
+        //     } catch (error) {
+        //         console.error("Error generating speech:", error);
+        //         throw error;
+        //     }
+        // }
+
+        // // Function to send human validated response
+        // async function sendValidation(validation, comments) {
+        //     try {
+        //         // Create and display a waiting element
+        //         const waitingEl = document.createElement('div');
+        //         waitingEl.className = 'alert alert-info mt-2';
+        //         waitingEl.innerHTML = '⏳ Processing validation...';
+        //         document.getElementById("chat-body").appendChild(waitingEl);
+
+        //         const formData = new FormData();
+        //         formData.append("validation_result", validation);
+        //         formData.append("comments", comments);
+
+        //         const response = await fetch("/send_validation", {
+        //             method: "POST",
+        //             body: formData,
+        //             credentials: 'include'
+        //         });
+
+        //         const result = await response.json();
+
+        //         // Remove waiting indicator
+        //         waitingEl.remove();
+
+        //         // Build validated message HTML with audio controls added
+        //         const validationMsg = document.createElement("div");
+        //         validationMsg.className = "message assistant-message";
+        //         validationMsg.innerHTML = `
+        //             <div class="agent-tag">HUMAN_VALIDATED</div>
+        //             <div>${marked.parse(result.message)}</div>
+        //             <div>${marked.parse(result.response)}</div>
+        //             <div class="audio-controls mt-2">
+        //                 <button class="btn btn-sm btn-outline-primary play-tts-btn">
+        //                     <i class="fas fa-play"></i> Play Voice Response
+        //                 </button>
+        //             </div>
+        //         `;
+        //         document.getElementById("chat-body").appendChild(validationMsg);
+
+        //         // Get clean text for TTS (without markdown)
+        //         const cleanText = removeMarkdown(result.response);
+
+        //         // Attach event listener for TTS for validation message
+        //         const playButton = validationMsg.querySelector('.play-tts-btn');
+        //         if (playButton) {
+        //             playButton.addEventListener('click', async function () {
+
+        //                 // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
+        //                 const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
+
+        //                 // Disable the button while generating speech
+        //                 this.disabled = true;
+        //                 this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+
+        //                 try {
+        //                     // Get the new audio URL
+        //                     const audioUrl = await generateSpeech(textForSpeech);
+
+        //                     // Stop and clean up previous audio if playing
+        //                     if (currentAudio) {
+        //                         currentAudio.pause();
+        //                         currentAudio.currentTime = 0;
+        //                         URL.revokeObjectURL(currentAudio.src);  // Free up memory
+        //                         currentAudio = null;  // Clear the reference
+        //                     }
+
+        //                     // Create a new audio element for the new speech
+        //                     currentAudio = new Audio(audioUrl);
+
+        //                     // Set event listeners for button updates
+        //                     currentAudio.onplay = () => {
+        //                         this.innerHTML = '<i class="fas fa-pause"></i> Pause';
+        //                         this.classList.remove('btn-outline-primary');
+        //                         this.classList.add('btn-primary');
+        //                         this.disabled = false;
+        //                     };
+
+        //                     currentAudio.onpause = () => {
+        //                         this.innerHTML = '<i class="fas fa-play"></i> Play';
+        //                         this.classList.remove('btn-primary');
+        //                         this.classList.add('btn-outline-primary');
+        //                     };
+
+        //                     currentAudio.onended = () => {
+        //                         this.innerHTML = '<i class="fas fa-play"></i> Play Again';
+        //                         this.classList.remove('btn-primary');
+        //                         this.classList.add('btn-outline-primary');
+        //                         URL.revokeObjectURL(audioUrl);  // Free memory after playback
+        //                         currentAudio = null;  // Ensure reference is cleared
+        //                     };
+
+        //                     // Toggle play/pause on button click
+        //                     this.onclick = () => {
+        //                         if (currentAudio && currentAudio.paused) {
+        //                             currentAudio.play();
+        //                         } else {
+        //                             currentAudio.pause();
+        //                         }
+        //                     };
+
+        //                     // Play the generated speech
+        //                     currentAudio.play();
+        //                 } catch (error) {
+        //                     console.error("TTS Error:", error);
+        //                     this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Voice failed';
+        //                     this.disabled = false;
+        //                 }
+
+        //             });
+        //         }
+        //     } catch (error) {
+        //         console.error("Validation submission failed:", error);
+        //     }
+        // }
+
+        // // Helper function to remove markdown for clean TTS
+        // function removeMarkdown(text) {
+        //     if (!text) return '';
+            
+        //     // Remove code blocks
+        //     text = text.replace(/```[\s\S]*?```/g, 'Code block omitted for speech.');
+            
+        //     // Remove inline code
+        //     text = text.replace(/`([^`]+)`/g, '$1');
+            
+        //     // Remove headers
+        //     text = text.replace(/#{1,6}\s+/g, '');
+            
+        //     // Remove bold/italic markers
+        //     text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+        //     text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+            
+        //     // Remove list markers
+        //     text = text.replace(/^\s*[\*\-+]\s+/gm, '');
+        //     text = text.replace(/^\s*\d+\.\s+/gm, '');
+            
+        //     // Remove links, keep text
+        //     text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+            
+        //     // Remove images
+        //     text = text.replace(/!\[([^\]]+)\]\([^)]+\)/g, 'Image: $1');
+            
+        //     // Remove blockquotes
+        //     text = text.replace(/^\>\s+/gm, '');
+            
+        //     // Handle line breaks sensibly for speech
+        //     text = text.replace(/\n{2,}/g, '. ');
+        //     text = text.replace(/\n/g, ' ');
+            
+        //     return text;
+        // }
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext;
+        let currentAudio = null;  // Store a single audio instance
+        let selectedVoiceId = '21m00Tcm4TlvDq8ikWAM'; // Default voice ID (Rachel)
+
+        // ================= Authentication (P3 frontend) =================
+        let authEnabled = false;
+        let currentUser = null;
+
+        function getToken() { return localStorage.getItem('access_token'); }
+        function setToken(t) { t ? localStorage.setItem('access_token', t) : localStorage.removeItem('access_token'); }
+        function getRefreshToken() { return localStorage.getItem('refresh_token'); }
+        function setRefreshToken(t) { t ? localStorage.setItem('refresh_token', t) : localStorage.removeItem('refresh_token'); }
+        function clearTokens() { setToken(null); setRefreshToken(null); }
+
+        // Single-flight refresh: concurrent 401s share one /auth/refresh call.
+        let _refreshing = null;
+        async function tryRefresh() {
+            const rt = getRefreshToken();
+            if (!rt) return false;
+            if (!_refreshing) {
+                _refreshing = (async () => {
+                    try {
+                        const resp = await fetch('/auth/refresh', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ refresh_token: rt })
+                        });
+                        if (!resp.ok) return false;
+                        const data = await resp.json().catch(() => ({}));
+                        if (!data.access_token) return false;
+                        setToken(data.access_token);
+                        if (data.refresh_token) setRefreshToken(data.refresh_token);
+                        return true;
+                    } catch (e) {
+                        return false;
+                    } finally {
+                        // Release the lock on the next microtask so callers awaiting
+                        // this promise all observe the same result first.
+                        setTimeout(() => { _refreshing = null; }, 0);
+                    }
+                })();
+            }
+            return _refreshing;
+        }
+
+        // fetch wrapper that injects the Bearer token, transparently refreshes on
+        // 401 (once), and only forces re-login when refresh also fails.
+        async function authFetch(url, options = {}, _retried = false) {
+            options = Object.assign({}, options);
+            options.headers = Object.assign({}, options.headers || {});
+            const t = getToken();
+            if (t) options.headers['Authorization'] = 'Bearer ' + t;
+            if (!('credentials' in options)) options.credentials = 'include';
+            const resp = await fetch(url, options);
+            if (resp.status === 401 && authEnabled && !_retried) {
+                const ok = await tryRefresh();
+                if (ok) return authFetch(url, options, true);  // retry once with new token
+                clearTokens();
+                showAuthOverlay('登录已过期，请重新登录');
+            }
+            return resp;
+        }
+
+        function showAuthOverlay(msg) {
+            const overlay = document.getElementById('auth-overlay');
+            overlay.classList.add('show');
+            if (msg) showAuthError(msg);
+        }
+        function hideAuthOverlay() {
+            document.getElementById('auth-overlay').classList.remove('show');
+            hideAuthError();
+        }
+        function showAuthError(msg) {
+            const el = document.getElementById('auth-error');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        function hideAuthError() {
+            document.getElementById('auth-error').style.display = 'none';
+        }
+        function showUserBar(user) {
+            const bar = document.getElementById('user-bar');
+            document.getElementById('user-badge').textContent = `${user.username}（${user.role}）`;
+            bar.style.display = 'flex';
+        }
+        function hideUserBar() { document.getElementById('user-bar').style.display = 'none'; }
+
+        // Determine auth state via /auth/me (anonymous when auth disabled).
+        async function initAuth(refreshConversations = false) {
+            try {
+                const t = getToken();
+                const resp = await fetch('/auth/me', {
+                    headers: t ? { 'Authorization': 'Bearer ' + t } : {},
+                    credentials: 'include'
+                });
+                if (resp.ok) {
+                    const u = await resp.json();
+                    if (u && u.anonymous) { authEnabled = false; hideAuthOverlay(); hideUserBar(); return; }
+                    if (u.role === 'doctor') {
+                        clearTokens();
+                        window.location.href = '/doctor';
+                        return;
+                    }
+                    authEnabled = true; currentUser = u; showUserBar(u); hideAuthOverlay();
+                    if (refreshConversations) reloadConversationUI();
+                    return;
+                }
+                // Unauthorized -> auth is on. Try a silent refresh before forcing login.
+                authEnabled = true;
+                if (resp.status === 401 && getRefreshToken()) {
+                    const ok = await tryRefresh();
+                    if (ok) { await initAuth(); return; }
+                    clearTokens();
+                }
+                showAuthOverlay();
+            } catch (e) {
+                // Network/other error: don't block the UI.
+                console.error('initAuth failed', e);
+                hideAuthOverlay();
+            }
+        }
+
+        async function doLogin(username, password) {
+            const resp = await fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.detail || data.response || '登录失败');
+            if (data.role === 'doctor') {
+                clearTokens();
+                localStorage.setItem('doctor_token', data.access_token);
+                window.location.href = '/doctor';
+                return;
+            }
+            setToken(data.access_token);
+            setRefreshToken(data.refresh_token || null);  // present only when server enables refresh tokens
+            await initAuth(true);
+        }
+
+        async function doRegister(username, password, email) {
+            const resp = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, email: email || null })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.response || data.detail || '注册失败');
+            await doLogin(username, password);
+        }
+
+        function wireAuthUI() {
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+
+            tabLogin.addEventListener('click', () => {
+                loginForm.style.display = 'block'; registerForm.style.display = 'none';
+                tabLogin.className = 'btn btn-primary'; tabRegister.className = 'btn btn-outline-primary';
+                document.getElementById('auth-title').innerHTML = '<i class="fas fa-user-shield me-2"></i>登录';
+                hideAuthError();
+            });
+            tabRegister.addEventListener('click', () => {
+                loginForm.style.display = 'none'; registerForm.style.display = 'block';
+                tabRegister.className = 'btn btn-primary'; tabLogin.className = 'btn btn-outline-primary';
+                document.getElementById('auth-title').innerHTML = '<i class="fas fa-user-plus me-2"></i>注册';
+                hideAuthError();
+            });
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideAuthError();
+                try {
+                    await doLogin(document.getElementById('login-username').value.trim(),
+                                  document.getElementById('login-password').value);
+                } catch (err) { showAuthError(err.message); }
+            });
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideAuthError();
+                try {
+                    await doRegister(document.getElementById('reg-username').value.trim(),
+                                     document.getElementById('reg-password').value,
+                                     document.getElementById('reg-email').value.trim());
+                } catch (err) { showAuthError(err.message); }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                // Ask the server to revoke the current tokens so they can't be
+                // reused before expiry (best-effort; UI logs out regardless).
+                try {
+                    const rt = getRefreshToken();
+                    await authFetch('/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(rt ? { refresh_token: rt } : {})
+                    });
+                } catch (e) { /* ignore network errors on logout */ }
+                clearTokens(); currentUser = null; hideUserBar();
+                if (authEnabled) showAuthOverlay('已退出登录');
+            });
+        }
+        // ================= end Authentication =================
+
+        // ================= Multi-conversation manager =================
+        // Each conversation has its own session_id (LangGraph thread_id on the
+        // backend) + persisted chat-body HTML, all kept in localStorage. The
+        // active session_id is sent as the X-Session-Id header so the backend
+        // isolates each conversation's memory.
+        const WELCOME_HTML = `
+            <div class="message assistant-message">
+                <div class="agent-tag">系统</div>
+                <p>您好！我是 SAGE 老年医学智能助手，可协助进行健康咨询、医学信息分析、失能/失智风险筛查、居住环境安全评价及辅助器具适配。</p>
+            </div>`;
+
+        const ConvStore = {
+            _scope() {
+                const name = (currentUser && currentUser.username) ? currentUser.username : 'anonymous';
+                return String(name).replace(/[^a-zA-Z0-9_\u4e00-\u9fff-]/g, '_');
+            },
+            _key(name) { return `mac_${this._scope()}_${name}`; },
+            _uid() { return 'c-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); },
+            list() {
+                try { return JSON.parse(localStorage.getItem(this._key('conversations')) || '[]'); }
+                catch (e) { return []; }
+            },
+            saveList(list) { localStorage.setItem(this._key('conversations'), JSON.stringify(list)); },
+            currentId() { return localStorage.getItem(this._key('current_conv')) || ''; },
+            setCurrent(id) { localStorage.setItem(this._key('current_conv'), id); },
+            getHtml(id) { return localStorage.getItem(this._key('conv_html_' + id)) || WELCOME_HTML; },
+            setHtml(id, html) { if (id) localStorage.setItem(this._key('conv_html_' + id), html); },
+            create(title) {
+                const conv = { id: this._uid(), title: title || '新会话', ts: Date.now() };
+                const list = this.list();
+                list.unshift(conv);
+                this.saveList(list);
+                this.setHtml(conv.id, WELCOME_HTML);
+                this.setCurrent(conv.id);
+                return conv;
+            },
+            remove(id) {
+                let list = this.list().filter(c => c.id !== id);
+                this.saveList(list);
+                localStorage.removeItem(this._key('conv_html_' + id));
+                if (this.currentId() === id) {
+                    if (list.length) this.setCurrent(list[0].id);
+                    else this.setCurrent(this.create('新会话').id);
+                }
+            },
+            rename(id, title) {
+                const list = this.list();
+                const c = list.find(x => x.id === id);
+                if (c) { c.title = title; this.saveList(list); }
+            },
+            ensure() {
+                if (!this.list().length) this.create('新会话');
+                if (!this.currentId() || !this.list().some(c => c.id === this.currentId())) {
+                    this.setCurrent(this.list()[0].id);
+                }
+                return this.currentId();
+            }
+        };
+
+        function getCurrentSessionId() { return ConvStore.currentId(); }
+
+        function reloadConversationUI() {
+            const body = document.getElementById('chat-body');
+            if (!body) return;
+            ConvStore.ensure();
+            body.innerHTML = ConvStore.getHtml(ConvStore.currentId());
+            rebindMessageActions(body);
+            renderConversationList();
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function persistCurrentChat() {
+            const body = document.getElementById('chat-body');
+            if (body) ConvStore.setHtml(ConvStore.currentId(), body.innerHTML);
+        }
+
+        function renderConversationList() {
+            const ul = document.getElementById('conversation-list');
+            if (!ul) return;
+            const cur = ConvStore.currentId();
+            ul.innerHTML = '';
+            ConvStore.list().forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'conversation-item' + (c.id === cur ? ' active' : '');
+                li.innerHTML = `<span class="conv-title" title="${c.title}">${c.title}</span>
+                    <button class="conv-del" title="删除会话"><i class="fas fa-times"></i></button>`;
+                li.querySelector('.conv-title').addEventListener('click', () => switchConversation(c.id));
+                li.querySelector('.conv-del').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm('删除该会话？')) { ConvStore.remove(c.id); switchConversation(ConvStore.currentId()); }
+                });
+                ul.appendChild(li);
+            });
+        }
+
+        function switchConversation(id) {
+            if (!id) return;
+            persistCurrentChat();
+            ConvStore.setCurrent(id);
+            const body = document.getElementById('chat-body');
+            if (body) body.innerHTML = ConvStore.getHtml(id);
+            renderConversationList();
+            if (body) { rebindMessageActions(body); body.scrollTop = body.scrollHeight; }
+        }
+
+        function newConversation() {
+            persistCurrentChat();
+            ConvStore.create('新会话');
+            const body = document.getElementById('chat-body');
+            if (body) body.innerHTML = WELCOME_HTML;
+            renderConversationList();
+        }
+
+        // Re-attach the "播放语音" (TTS) handler to buttons in restored message
+        // HTML (localStorage HTML loses JS listeners). Mirrors the inline handler
+        // used for freshly-rendered responses.
+        function rebindMessageActions(root) {
+            try {
+                root.querySelectorAll('.play-tts-btn').forEach(btn => {
+                    if (btn._bound) return; btn._bound = true;
+                    btn.addEventListener('click', async function () {
+                        const container = this.closest('.assistant-message');
+                        let txt = '';
+                        if (container) {
+                            const clone = container.cloneNode(true);
+                            clone.querySelectorAll('.audio-controls, .agent-tag').forEach(n => n.remove());
+                            txt = (clone.innerText || '').trim();
+                        }
+                        if (!txt || typeof generateSpeech !== 'function') return;
+                        const textForSpeech = txt.length > 1000 ? txt.substring(0, 1000) + '...' : txt;
+                        this.disabled = true;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+                        try {
+                            const audioUrl = await generateSpeech(textForSpeech);
+                            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+                            currentAudio = new Audio(audioUrl);
+                            currentAudio.onplay = () => { this.innerHTML = '<i class="fas fa-pause"></i> 暂停'; this.disabled = false; };
+                            currentAudio.onpause = () => { this.innerHTML = '<i class="fas fa-play"></i> 播放'; };
+                            currentAudio.onended = () => { this.innerHTML = '<i class="fas fa-play"></i> 重新播放'; currentAudio = null; };
+                            this.onclick = () => { if (currentAudio && currentAudio.paused) currentAudio.play(); else if (currentAudio) currentAudio.pause(); };
+                            currentAudio.play();
+                        } catch (e) {
+                            this.disabled = false;
+                            this.innerHTML = '<i class="fas fa-play"></i> 播放语音';
+                        }
+                    });
+                });
+            } catch (e) { /* non-fatal */ }
+        }
+
+        // Auto-title a conversation from its first user message.
+        function maybeAutoTitle(text) {
+            const id = ConvStore.currentId();
+            const list = ConvStore.list();
+            const c = list.find(x => x.id === id);
+            if (c && (c.title === '新会话' || !c.title) && text) {
+                c.title = text.slice(0, 18);
+                ConvStore.saveList(list);
+                renderConversationList();
+            }
+        }
+        // ================= end Multi-conversation manager =================
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            wireAuthUI();
+            await initAuth();
+            const chatBody = document.getElementById('chat-body');
+            const chatForm = document.getElementById('chat-form');
+            const messageInput = document.getElementById('message-input');
+            document.querySelectorAll('.elderly-quick').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    _openStructuredAssessment(btn.getAttribute('data-assessment'));
+                });
+            });
+            const imageUpload = document.getElementById('image-upload');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const removeImageBtn = document.getElementById('remove-image');
+            const clearChatBtn = document.getElementById('clear-chat');
+
+            // Add voice recording button to the UI
+            const fileUploadContainer = document.querySelector('.file-upload-container');
+            const voiceButtonHTML = `
+                <button type="button" class="btn btn-warning rounded-circle ms-2 me-2" id="voice-record-btn" style="width: 40px; height: 40px;">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            `;
+            fileUploadContainer.insertAdjacentHTML('afterend', voiceButtonHTML);
+            
+            const voiceRecordBtn = document.getElementById('voice-record-btn');
+            
+            // Voice recording functionality
+            voiceRecordBtn.addEventListener('click', toggleRecording);
+            
+            // Initialize audio context
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+            } catch (e) {
+                console.error('Web Audio API is not supported in this browser');
+            }
+            
+            // We only maintain display messages
+            let displayMessages = [];
+
+            // ---- Multi-conversation init: restore the active user-scoped conversation ----
+            reloadConversationUI();
+            const newChatBtn = document.getElementById('new-chat-btn');
+            if (newChatBtn) newChatBtn.addEventListener('click', newConversation);
+            // Persist chat history before leaving/refresh.
+            window.addEventListener('beforeunload', persistCurrentChat);
+
+            // Auto-resize textarea
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            
+            // Handle image upload
+            imageUpload.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        previewContainer.style.display = 'block';
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Remove image preview
+            removeImageBtn.addEventListener('click', function() {
+                imageUpload.value = '';
+                previewContainer.style.display = 'none';
+                previewImage.src = '';
+            });
+            
+            // Clear chat (only visual) — clears the CURRENT conversation.
+            clearChatBtn.addEventListener('click', function() {
+                displayMessages = [];
+                chatBody.innerHTML = WELCOME_HTML;
+                persistCurrentChat();
+            });
+            
+            // Handle form submission
+            chatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Get message from input or transcribed text
+                const message = messageInput.value.trim();
+                if (!message && !imageUpload.files.length) return;
+                
+                // Store image data if available
+                let imageDataUrl = null;
+                if (imageUpload.files.length > 0) {
+                    imageDataUrl = previewImage.src;
+                }
+                
+                // Add user message to chat
+                const userMessageElement = document.createElement('div');
+                userMessageElement.className = 'message user-message';
+                
+                // Create message content with image if available
+                let messageContent = `<p>${message}</p>`;
+                if (imageDataUrl) {
+                    messageContent += `
+                        <div class="mt-2">
+                            <img src="${imageDataUrl}" alt="已上传图片" class="img-fluid rounded" style="max-height: 200px;">
+                        </div>
+                    `;
+                }
+                
+                userMessageElement.innerHTML = messageContent;
+                chatBody.appendChild(userMessageElement);
+                
+                // Add thinking indicator
+                const thinkingElement = document.createElement('div');
+                thinkingElement.className = 'message assistant-message thinking';
+                thinkingElement.innerHTML = `
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                `;
+                chatBody.appendChild(thinkingElement);
+                
+                // Scroll to bottom
+                chatBody.scrollTop = chatBody.scrollHeight;
+                
+                // Clear input
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                
+                try {
+                    let response;
+                    
+                    // Check if there's an image or just text
+                    if (imageUpload.files.length > 0) {
+                        // Create form data for image upload with optional text
+                        const formData = new FormData();
+                        formData.append('text', message);
+                        formData.append('image', imageUpload.files[0]);
+                        
+                        // Send to backend using the /upload endpoint (scoped to the
+                        // active conversation via the X-Session-Id header).
+                        response = await authFetch('/upload', {
+                            method: 'POST',
+                            headers: { 'X-Session-Id': getCurrentSessionId() },
+                            body: formData,
+                            credentials: 'include' // Important for cookie handling
+                        });
+                    } else {
+                        // Text-only query using the /chat endpoint with JSON
+                        response = await authFetch('/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Session-Id': getCurrentSessionId()
+                            },
+                            body: JSON.stringify({
+                                query: message,
+                                conversation_history: [] // You might want to maintain this if needed
+                            }),
+                            credentials: 'include' // Important for cookie handling
+                        });
+                    }
+
+                    // Title the conversation from its first message.
+                    maybeAutoTitle(message);
+                    
+                    const data = await response.json();
+
+                    if (!response.ok || data.status === "error") {
+                        const backendMsg = data.response || data.detail || `HTTP ${response.status}`;
+                        throw new Error(backendMsg);
+                    }
+                    
+                    // Remove thinking indicator
+                    chatBody.removeChild(thinkingElement);
+                    
+                    // Add response to chat
+                    const assistantMessageElement = document.createElement('div');
+                    assistantMessageElement.className = 'message assistant-message';
+                    
+                    // Get clean text for TTS (without markdown)
+                    const cleanText = removeMarkdown(data.response);
+                    
+                    // Build HTML content for the response with audio controls
+                    const displayAgent = localizeAgentLabel(data.agent);
+                    let assistantHtml = `
+                        <div class="agent-tag">${displayAgent}</div>
+                        <div>${marked.parse(data.response)}</div>
+                        <div class="audio-controls mt-2">
+                            <button class="btn btn-sm btn-outline-primary play-tts-btn">
+                                <i class="fas fa-play"></i> 播放语音
+                            </button>
+                        </div>
+                    `;
+
+                    // Doctor review queue for image diagnoses (replaces patient self-validation)
+                    if (data.awaiting_review && data.case_uid) {
+                        assistantHtml += `
+                            <div class="mt-3 p-3 border rounded bg-light" id="review-status-${data.case_uid}">
+                                <p><i class="fas fa-spinner fa-spin me-2 text-primary"></i><strong>已提交医生复核</strong></p>
+                                <p class="text-muted small mb-0">您的病理影像和 AI 初步分析已提交至执业医生审核队列。医生审核完成后，您将实时收到诊断结论。</p>
+                            </div>
+                        `;
+                        if (!window._sseConnections) window._sseConnections = [];
+                        window._sseConnections.push(data.case_uid);
+                    }
+                    
+                    // Add result image if it exists
+                    if (data.result_image) {
+                        // If the skin lesion segmentation agent was used and both the user uploaded
+                        // an image and we have a result image, display them side by side
+                        if (data.agent === "SKIN_LESION_AGENT, HUMAN_VALIDATION" && imageDataUrl) {
+                            assistantHtml += `
+                                <div class="image-side-by-side">
+                                    <div class="image-container">
+                                        <img src="${imageDataUrl}" alt="原图" class="img-fluid rounded">
+                                        <div class="image-caption">原图</div>
+                                    </div>
+                                    <div class="image-container">
+                                        <img src="${data.result_image}" alt="分割结果图" class="img-fluid rounded">
+                                        <div class="image-caption">分割结果</div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Otherwise just show the result image
+                            assistantHtml += `
+                                <div class="mt-3">
+                                    <img src="${data.result_image}" alt="结果图" class="result-image">
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    assistantMessageElement.innerHTML = assistantHtml;
+                    chatBody.appendChild(assistantMessageElement);
+
+                    // Connect SSE for doctor review updates.
+                    if (window._sseConnections && window._sseConnections.length > 0) {
+                        const pendingIds = [...window._sseConnections];
+                        window._sseConnections = [];
+                        pendingIds.forEach(caseUid => connectReviewSSE(caseUid));
+                    }
+                    
+                    // Get the play button and add click event to speak text
+                    const playButton = assistantMessageElement.querySelector('.play-tts-btn');
+
+                    playButton.addEventListener('click', async function () {
+                        // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
+                        const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
+
+                        // Disable the button while generating speech
+                        this.disabled = true;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+
+                        try {
+                            // Get the new audio URL
+                            const audioUrl = await generateSpeech(textForSpeech);
+
+                            // Stop and clean up previous audio if playing
+                            if (currentAudio) {
+                                currentAudio.pause();
+                                currentAudio.currentTime = 0;
+                                URL.revokeObjectURL(currentAudio.src);  // Free up memory
+                                currentAudio = null;  // Clear the reference
+                            }
+
+                            // Create a new audio element for the new speech
+                            currentAudio = new Audio(audioUrl);
+
+                            // Set event listeners for button updates
+                            currentAudio.onplay = () => {
+                                this.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                                this.classList.remove('btn-outline-primary');
+                                this.classList.add('btn-primary');
+                                this.disabled = false;
+                            };
+
+                            currentAudio.onpause = () => {
+                                this.innerHTML = '<i class="fas fa-play"></i> 播放';
+                                this.classList.remove('btn-primary');
+                                this.classList.add('btn-outline-primary');
+                            };
+
+                            currentAudio.onended = () => {
+                                this.innerHTML = '<i class="fas fa-play"></i> 重新播放';
+                                this.classList.remove('btn-primary');
+                                this.classList.add('btn-outline-primary');
+                                URL.revokeObjectURL(audioUrl);  // Free memory after playback
+                                currentAudio = null;  // Ensure reference is cleared
+                            };
+
+                            // Toggle play/pause on button click
+                            this.onclick = () => {
+                                if (currentAudio && currentAudio.paused) {
+                                    currentAudio.play();
+                                } else {
+                                    currentAudio.pause();
+                                }
+                            };
+
+                            // Play the generated speech
+                            currentAudio.play();
+                        } catch (error) {
+                            console.error("TTS Error:", error);
+                            this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 语音失败';
+                            this.disabled = false;
+                        }
+                    });
+                    
+                    // Store messages for display purposes only
+                    displayMessages.push({
+                        role: "user",
+                        content: message,
+                        image: imageDataUrl
+                    });
+                    
+                    displayMessages.push({
+                        role: "assistant",
+                        content: data.response,
+                        agent: data.agent,
+                        resultImage: data.result_image
+                    });
+                    
+                    // Clear file upload preview
+                    imageUpload.value = '';
+                    previewContainer.style.display = 'none';
+                    
+                } catch (error) {
+                    console.error("Error:", error);
+                    // Remove thinking indicator
+                    chatBody.removeChild(thinkingElement);
+                    
+                    // Add error message
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'message assistant-message';
+                    errorElement.innerHTML = `
+                        <div class="agent-tag">系统</div>
+                        <p class="text-danger">请求失败：${error.message || '请检查后端日志与网络连接。'}</p>
+                    `;
+                    chatBody.appendChild(errorElement);
+                }
+                
+                // Scroll to bottom again
+                chatBody.scrollTop = chatBody.scrollHeight;
+
+                // Persist this conversation's transcript for later restore.
+                persistCurrentChat();
+            });
+
+            // Allow sending message with Enter key
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+
+        // Speech Recorder button function
+        function toggleRecording() {
+            const voiceButton = document.getElementById('voice-record-btn');
+            
+            if (!isRecording) {
+                // Start recording
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                        audioChunks = [];
+                        
+                        mediaRecorder.addEventListener('dataavailable', event => {
+                            audioChunks.push(event.data);
+                        });
+                        
+                        mediaRecorder.addEventListener('stop', () => {
+                            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                            transcribeSpeech(audioBlob);
+                            
+                            // Reset UI
+                            voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                            voiceButton.classList.remove('btn-danger');
+                            voiceButton.classList.add('btn-warning');
+                        });
+                        
+                        // Start recording
+                        mediaRecorder.start();
+                        isRecording = true;
+                        
+                        // Update UI
+                        voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+                        voiceButton.classList.remove('btn-warning');
+                        voiceButton.classList.add('btn-danger');
+                    })
+                    .catch(error => {
+                        console.error('Error accessing microphone:', error);
+                        alert('无法访问麦克风，请检查浏览器权限设置。');
+                    });
+            } else {
+                // Stop recording
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                // Update UI to show processing
+                voiceButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                voiceButton.disabled = true;
+                
+                // Each track needs to be stopped to turn off the microphone
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function transcribeSpeech(audioBlob) {
+            const voiceButton = document.getElementById('voice-record-btn');
+                        const messageInput = document.getElementById('message-input');
+
+            
+            // Create a temporary element to display processing status
+            const statusElement = document.createElement('div');
+            statusElement.className = 'alert alert-info mt-2';
+            statusElement.innerHTML = '正在处理语音输入...';
+            document.querySelector('.chat-footer').prepend(statusElement);
+            
+            // Use server-side transcription for recorded audio
+            const formData = new FormData();
+            formData.append('audio', audioBlob);
+            
+            authFetch('/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.transcript) {
+                    messageInput.value = data.transcript;
+                    messageInput.focus();
+                } else {
+                    throw new Error('语音转写失败');
+                }
+            })
+            .catch(error => {
+                console.error('Transcription error:', error);
+                statusElement.className = 'alert alert-danger mt-2';
+                statusElement.innerHTML = '语音转写失败，请重试或改为文本输入。';
+            })
+            .finally(() => {
+                // Clean up
+                setTimeout(() => {
+                    statusElement.remove();
+                    voiceButton.disabled = false;
+                    voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                }, 3000);
+            });
+        }
+
+        // Function to generate speech using the backend
+        async function generateSpeech(text) {
+            try {
+                const response = await authFetch('/generate-speech', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_id: selectedVoiceId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP 错误！状态码：${response.status}`);
+                }
+
+                // Convert response to a playable audio blob
+                const audioBlob = await response.blob();
+                return URL.createObjectURL(audioBlob);
+            } catch (error) {
+                console.error("Error generating speech:", error);
+                throw error;
+            }
+        }
+
+        // Function to send human validated response
+        async function sendValidation(validation, comments) {
+            try {
+                // Create and display a waiting element
+                const waitingEl = document.createElement('div');
+                waitingEl.className = 'alert alert-info mt-2';
+                waitingEl.innerHTML = '⏳ 正在处理人工复核...';
+                document.getElementById("chat-body").appendChild(waitingEl);
+
+                const formData = new FormData();
+                formData.append("validation_result", validation);
+                formData.append("comments", comments);
+
+                const response = await authFetch("/validate", {
+                    method: "POST",
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.status === "error") {
+                    const backendMsg = result.response || result.detail || `HTTP ${response.status}`;
+                    throw new Error(backendMsg);
+                }
+
+                // Remove waiting indicator
+                waitingEl.remove();
+
+                // Build validated message HTML with audio controls added
+                const validationMsg = document.createElement("div");
+                validationMsg.className = "message assistant-message";
+                validationMsg.innerHTML = `
+                    <div class="agent-tag">人工复核</div>
+                    <div>${marked.parse(result.message)}</div>
+                    <div>${marked.parse(result.response)}</div>
+                    <div class="audio-controls mt-2">
+                        <button class="btn btn-sm btn-outline-primary play-tts-btn">
+                            <i class="fas fa-play"></i> 播放语音
+                        </button>
+                    </div>
+                `;
+                document.getElementById("chat-body").appendChild(validationMsg);
+
+                // Get clean text for TTS (without markdown)
+                const cleanText = removeMarkdown(result.response);
+
+                // Attach event listener for TTS for validation message
+                const playButton = validationMsg.querySelector('.play-tts-btn');
+                if (playButton) {
+                    playButton.addEventListener('click', async function () {
+                        // Get a reasonable amount of text to convert to speech (limit to 1000 chars to keep requests smaller)
+                        const textForSpeech = cleanText.length > 1000 ? cleanText.substring(0, 1000) + "..." : cleanText;
+
+                        // Disable the button while generating speech
+                        this.disabled = true;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+
+                        try {
+                            // Get the new audio URL
+                            const audioUrl = await generateSpeech(textForSpeech);
+
+                            // Stop and clean up previous audio if playing
+                            if (currentAudio) {
+                                currentAudio.pause();
+                                currentAudio.currentTime = 0;
+                                URL.revokeObjectURL(currentAudio.src);  // Free up memory
+                                currentAudio = null;  // Clear the reference
+                            }
+
+                            // Create a new audio element for the new speech
+                            currentAudio = new Audio(audioUrl);
+
+                            // Set event listeners for button updates
+                            currentAudio.onplay = () => {
+                                this.innerHTML = '<i class="fas fa-pause"></i> 暂停';
+                                this.classList.remove('btn-outline-primary');
+                                this.classList.add('btn-primary');
+                                this.disabled = false;
+                            };
+
+                            currentAudio.onpause = () => {
+                                this.innerHTML = '<i class="fas fa-play"></i> 播放';
+                                this.classList.remove('btn-primary');
+                                this.classList.add('btn-outline-primary');
+                            };
+
+                            currentAudio.onended = () => {
+                                this.innerHTML = '<i class="fas fa-play"></i> 重新播放';
+                                this.classList.remove('btn-primary');
+                                this.classList.add('btn-outline-primary');
+                                URL.revokeObjectURL(audioUrl);  // Free memory after playback
+                                currentAudio = null;  // Ensure reference is cleared
+                            };
+
+                            // Toggle play/pause on button click
+                            this.onclick = () => {
+                                if (currentAudio && currentAudio.paused) {
+                                    currentAudio.play();
+                                } else {
+                                    currentAudio.pause();
+                                }
+                            };
+
+                            // Play the generated speech
+                            currentAudio.play();
+                        } catch (error) {
+                            console.error("TTS Error:", error);
+                            this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 语音失败';
+                            this.disabled = false;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Validation submission failed:", error);
+            }
+        }
+
+        // Helper function to remove markdown for clean TTS
+        // Connect SSE to receive doctor review result in real time.
+        function connectReviewSSE(caseUid) {
+            const statusEl = document.getElementById('review-status-' + caseUid);
+            if (!statusEl) return;
+            const evtSource = new EventSource('/review/stream/' + caseUid);
+            evtSource.addEventListener('result', function(e) {
+                try {
+                    const result = JSON.parse(e.data);
+                    let html = '';
+                    if (result.status === 'approved') {
+                        html = `<div class="alert alert-success mb-0">
+                            <i class="fas fa-check-circle me-2"></i><strong>医生审核通过</strong>
+                            ${result.reviewed_at ? '<br><small class="text-muted">审核时间：' + new Date(result.reviewed_at).toLocaleString() + '</small>' : ''}
+                        </div>
+                        ${result.final_result ? '<div class="mt-2">' + marked.parse(result.final_result) + '</div>' : ''}`;
+                    } else {
+                        html = `<div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i><strong>医生驳回</strong>
+                            ${result.doctor_comments ? '<br>备注：' + result.doctor_comments : ''}
+                        </div>
+                        ${result.final_result ? '<div class="mt-2">' + marked.parse(result.final_result) + '</div>' : ''}`;
+                    }
+                    statusEl.innerHTML = html;
+                    evtSource.close();
+                    persistCurrentChat();
+                } catch (err) { console.error('SSE result parse error', err); }
+            });
+            evtSource.addEventListener('error', function() { evtSource.close(); });
+        }
+
+        function localizeAgentLabel(agent) {
+            const mapping = {
+                "CONVERSATION_AGENT": "医疗对话智能体",
+                "RAG_AGENT": "医疗RAG智能体",
+                "WEB_SEARCH_PROCESSOR_AGENT": "网络检索智能体",
+                "BRAIN_TUMOR_AGENT": "脑肿瘤检测智能体",
+                "CHEST_XRAY_AGENT": "胸片分类智能体",
+                "SKIN_LESION_AGENT": "皮肤病灶分割智能体",
+                "HUMAN_VALIDATION": "人工复核",
+                "INPUT_GUARDRAILS": "输入安全护栏",
+                "OUTPUT_GUARDRAILS": "输出安全护栏",
+                "System": "系统",
+            };
+            if (!agent) return "系统";
+            const tokens = String(agent).split(",").map((item) => item.trim());
+            return tokens.map((token) => mapping[token] || token).join("、");
+        }
+
+        function removeMarkdown(text) {
+            if (!text) return '';
+            
+            // Remove code blocks
+            text = text.replace(/```[\s\S]*?```/g, '语音播报已省略代码块内容。');
+            
+            // Remove inline code
+            text = text.replace(/`([^`]+)`/g, '$1');
+            
+            // Remove headers
+            text = text.replace(/#{1,6}\s+/g, '');
+            
+            // Remove bold/italic markers
+            text = text.replace(/(\*\*|__)(.*?)\1/g, '$2');
+            text = text.replace(/(\*|_)(.*?)\1/g, '$2');
+            
+            // Remove list markers
+            text = text.replace(/^\s*[\*\-+]\s+/gm, '');
+            text = text.replace(/^\s*\d+\.\s+/gm, '');
+            
+            // Remove links, keep text
+            text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+            
+            // Remove images
+            text = text.replace(/!\[([^\]]+)\]\([^)]+\)/g, 'Image: $1');
+            
+            // Remove blockquotes
+            text = text.replace(/^\>\s+/gm, '');
+            
+            // Handle line breaks sensibly for speech
+            text = text.replace(/\n{2,}/g, '. ');
+            text = text.replace(/\n/g, ' ');
+            
+            return text;
+        }
+
+// ================= Elderly Case Management =================
+let _casesState = { page: 1, pageSize: 50, status: '', currentCaseUid: null, currentVersion: null, catalog: null };
+
+async function _casesApi(method, path, body) {
+    const opts = { method, headers: {} };
+    if (body instanceof FormData) {
+        opts.body = body;
+    } else if (body) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+    }
+    const resp = await authFetch(path, opts);
+    if (!resp.ok) {
+        let msg = '请求失败 (' + resp.status + ')';
+        try { const d = await resp.json(); if (d.detail) msg = d.detail; } catch(e) {}
+        throw new Error(msg);
+    }
+    return resp;
+}
+
+function _riskBadge(risk) {
+    const map = { low: 'success', medium: 'warning', high: 'danger', critical: 'dark' };
+    const cls = map[risk] || 'secondary';
+    return '<span class="badge bg-' + cls + '">' + (risk || '-') + '</span>';
+}
+
+function _statusBadge(status) {
+    const map = { pending_review: 'info', approved: 'success', revision_required: 'warning', rejected: 'danger' };
+    const cls = map[status] || 'secondary';
+    const label = { pending_review: '待复核', approved: '已通过', revision_required: '需修改', rejected: '已驳回' };
+    return '<span class="badge bg-' + cls + '">' + (label[status] || status) + '</span>';
+}
+
+function _assessmentLabel(type) {
+    const map = { adl: 'ADL', cognition: '认知', environment: '环境', assistive_device: '辅具' };
+    return map[type] || type;
+}
+
+function _showView(name) {
+    ['list', 'new', 'detail'].forEach(v => {
+        document.getElementById('cases-view-' + v).style.display = v === name ? 'block' : 'none';
+    });
+}
+
+async function _loadCases() {
+    try {
+        const qs = new URLSearchParams({ page: _casesState.page, page_size: _casesState.pageSize });
+        if (_casesState.status) qs.set('status', _casesState.status);
+        const resp = await _casesApi('GET', '/elderly/cases?' + qs.toString());
+        const data = await resp.json();
+        const tbody = document.getElementById('cases-tbody');
+        tbody.innerHTML = '';
+        if (!data.items || data.items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">暂无评估案例</td></tr>';
+        } else {
+            data.items.forEach(c => {
+                const risk = (c.rule_result || {}).risk_level || '-';
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = '<td><small>' + c.case_uid + '</small></td>' +
+                    '<td>' + _assessmentLabel(c.assessment_type) + '</td>' +
+                    '<td><small>' + (c.subject_code || '-') + '</small></td>' +
+                    '<td>' + _riskBadge(risk) + '</td>' +
+                    '<td>' + _statusBadge(c.status) + '</td>' +
+                    '<td><small>' + new Date(c.created_at).toLocaleString() + '</small></td>' +
+                    '<td><button class="btn btn-sm btn-outline-primary btn-case-detail" data-uid="' + c.case_uid + '"><i class="fas fa-eye"></i></button></td>';
+                tr.querySelector('.btn-case-detail').addEventListener('click', e => { e.stopPropagation(); _showCaseDetail(c.case_uid); });
+                tr.addEventListener('click', () => _showCaseDetail(c.case_uid));
+                tbody.appendChild(tr);
+            });
+        }
+        // Pagination
+        const pgDiv = document.getElementById('cases-pagination');
+        pgDiv.innerHTML = '';
+        const totalPages = Math.ceil((data.total || 0) / _casesState.pageSize);
+        if (totalPages > 1) {
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm ' + (i === _casesState.page ? 'btn-primary' : 'btn-outline-secondary');
+                btn.textContent = i;
+                btn.addEventListener('click', () => { _casesState.page = i; _loadCases(); });
+                pgDiv.appendChild(btn);
+            }
+        }
+    } catch(e) {
+        const tbody = document.getElementById('cases-tbody');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">' + e.message + '</td></tr>';
+    }
+}
+
+async function _loadCatalog() {
+    if (_casesState.catalog) return _casesState.catalog;
+    const resp = await _casesApi('GET', '/elderly/assessments/catalog');
+    const data = await resp.json();
+    _casesState.catalog = data.assessments;
+    return data.assessments;
+}
+
+const _assessmentForms = {
+    adl: {
+        title: '日常生活活动能力（基础 ADL）',
+        description: '记录老人近 7 天在无口头鼓励情况下的通常表现，而不是偶尔能做到的最好表现。',
+        items: [
+            ['bathing', '洗澡', '能否独立完成全身洗浴并安全进出浴室？'],
+            ['dressing', '穿衣', '能否自行取衣、穿脱衣裤并处理扣子或拉链？'],
+            ['toileting', '如厕', '能否自行进出厕所、整理衣物并清洁？'],
+            ['transferring', '床椅转移', '能否安全从床转移到椅子并返回？'],
+            ['continence', '大小便控制', '能否维持大小便控制或独立管理相关用品？'],
+            ['feeding', '进食', '食物备好后能否自行取食并完成进餐？'],
+        ],
+    },
+    cognition: {
+        title: '认知功能风险初筛（10 分简版）',
+        description: '应在安静环境中完成，并记录听视力、教育程度、情绪、急性意识改变等可能影响结果的因素。',
+        items: [
+            ['orientation', '定向力', '正确回答当前年份、月份、日期/星期、所在地点等，按正确项计 0–5 分。', 5],
+            ['delayed_recall', '延迟回忆', '登记 3 个词，间隔约 3 分钟后自由回忆，按正确词数计 0–3 分。', 3],
+            ['clock_drawing', '画钟试验', '画出钟面并标注指定时间：轮廓、数字位置、指针基本正确计 0–2 分。', 2],
+        ],
+    },
+    environment: {
+        title: '居住环境安全评价',
+        description: '建议由评估者现场查看，而不仅依赖口述。存在风险时可在提交案例后上传环境照片供专业复核。',
+        items: [
+            ['entrance_steps_without_ramp', '入口台阶无坡道/扶手', '主要出入口存在影响通行的台阶，且缺少稳定扶手或坡道。'],
+            ['bathroom_no_grab_bar', '卫生间缺少扶手', '坐便器或淋浴区域缺少牢固、位置合适的扶手。'],
+            ['bathroom_slippery', '卫生间地面湿滑', '地面材质、积水或缺少防滑措施增加跌倒风险。'],
+            ['poor_night_lighting', '夜间照明不足', '卧室至卫生间通道缺少夜灯或开关不易触及。'],
+            ['loose_rugs_or_wires', '地毯/电线形成障碍', '松动地毯、门槛、电线或杂物可能绊倒。'],
+            ['bed_height_inappropriate', '床椅高度不合适', '坐下后双脚不能稳定着地或起身明显困难。'],
+            ['doorway_too_narrow', '通道宽度不足', '门洞或转弯空间不满足助行器/轮椅通行。'],
+            ['no_emergency_call', '缺少紧急呼叫', '独居或高风险老人无法在跌倒后触及呼叫设备。'],
+            ['kitchen_fire_risk', '厨房用火风险', '存在忘关火、燃气泄漏或无人监护使用明火风险。'],
+            ['medication_unmanaged', '药物管理不安全', '存在漏服、重复服药、药品混放或无人核对。'],
+            ['wandering_exit_unprotected', '走失防护不足', '存在游走风险，但门磁、定位或照护流程不足。'],
+            ['toilet_inaccessible', '坐便/通行不可及', '坐便高度、空间或路径无法满足当前功能状态。'],
+        ],
+    },
+    assistive_device: {
+        title: '康复辅助器具需求初评',
+        description: '本模块只识别可能的辅具类别。最终选型必须结合身体尺寸、环境测量、试用和专业人员适配。',
+        items: [
+            ['mobility', '步行能力', '选择最符合近 7 天通常状态的一项。', [['independent','无需支撑可安全步行'],['mild_support','需单侧轻度支撑'],['moderate_support','需双侧支撑或助行器'],['wheelchair','主要依赖轮椅']]],
+            ['transfer', '移位能力', '从床到椅、坐站转换时所需帮助程度。', [['independent','可独立安全完成'],['supervision','需监护或口头提示'],['assisted','需一人身体协助'],['dependent','完全依赖或需多人/设备']]],
+            ['upper_limb', '上肢与抓握', '进食、穿衣和操作物品时的上肢功能。', [['normal','基本正常'],['limited','抓握或精细活动受限'],['severe','明显受限，日常活动需帮助']]],
+            ['cognition_risk', '认知/执行功能风险', '结合既往筛查、观察或专业评估填写。', [['low','低风险'],['medium','中风险'],['high','高风险']]],
+            ['fall_history', '近 12 个月跌倒史', '是否发生过至少一次非故意跌倒。', [['false','无'],['true','有']]],
+            ['living_alone', '独居情况', '大部分时间是否缺少同住照护者。', [['false','否'],['true','是']]],
+        ],
+    },
+};
+
+function _escapeAssessmentText(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function _renderDynamicForm() {
+    const type = document.getElementById('new-assessment-type').value;
+    const def = _assessmentForms[type];
+    const container = document.getElementById('dynamic-form-items');
+    const preview = document.getElementById('assessment-preview');
+    preview.style.display = 'none';
+    preview.innerHTML = '';
+    container.innerHTML = '<div class="mb-3"><h6 class="mb-1">' + def.title + '</h6><p class="small text-muted mb-0">' + def.description + '</p></div>';
+
+    def.items.forEach((item, index) => {
+        const [key, label, help, spec] = item;
+        const card = document.createElement('div');
+        card.className = 'card border-0 bg-light mb-2';
+        let control = '';
+        if (type === 'adl') {
+            control = '<select class="form-select form-select-sm" data-item="' + key + '">' +
+                '<option value="">请选择实际表现</option><option value="1">可独立、安全完成</option>' +
+                '<option value="0">需要他人帮助、监护或不能完成</option></select>';
+        } else if (type === 'environment') {
+            control = '<div class="btn-group btn-group-sm" role="group">' +
+                '<input class="btn-check" type="radio" name="env-' + key + '" id="env-' + key + '-no" data-item="' + key + '" value="false" checked>' +
+                '<label class="btn btn-outline-success" for="env-' + key + '-no">未发现</label>' +
+                '<input class="btn-check" type="radio" name="env-' + key + '" id="env-' + key + '-yes" data-item="' + key + '" value="true">' +
+                '<label class="btn btn-outline-danger" for="env-' + key + '-yes">存在风险</label></div>';
+        } else if (type === 'cognition') {
+            control = '<select class="form-select form-select-sm" data-item="' + key + '"><option value="">完成任务后选择实际得分</option>' +
+                Array.from({length: spec + 1}, (_, score) => '<option value="' + score + '">' + score + ' / ' + spec + ' 分</option>').join('') + '</select>';
+        } else {
+            control = '<select class="form-select form-select-sm" data-item="' + key + '"><option value="">请选择</option>' +
+                spec.map(opt => '<option value="' + opt[0] + '">' + opt[1] + '</option>').join('') + '</select>';
+        }
+        card.innerHTML = '<div class="card-body py-2"><div class="d-flex gap-2"><span class="badge rounded-pill bg-secondary align-self-start">' + (index + 1) + '</span>' +
+            '<div class="flex-grow-1"><label class="form-label fw-semibold mb-0">' + label + '</label><div class="small text-muted mb-2">' + help + '</div>' + control + '</div></div></div>';
+        container.appendChild(card);
+    });
+    container.querySelectorAll('input[type="range"]').forEach(input => {
+        input.addEventListener('input', () => {
+            input.parentElement.querySelector('.assessment-range-value').textContent = input.value + ' / ' + input.max;
+        });
+    });
+}
+
+function _collectAnswers() {
+    const answers = {};
+    document.querySelectorAll('#dynamic-form-items [data-item]').forEach(el => {
+        if (el.type === 'radio' && !el.checked) return;
+        let val = el.value;
+        if (val === 'true') val = true;
+        else if (val === 'false') val = false;
+        else if (el.type === 'range' || el.type === 'number') val = Number(val);
+        answers[el.dataset.item] = val;
+    });
+    return answers;
+}
+
+function _validateAssessmentAnswers(type, answers) {
+    const missing = _assessmentForms[type].items.filter(item => answers[item[0]] === '' || answers[item[0]] === undefined).map(item => item[1]);
+    if (missing.length) throw new Error('请完成以下项目：' + missing.join('、'));
+}
+
+function _renderAssessmentResult(result) {
+    const riskLabels = { low: '低风险', medium: '中风险', high: '高风险', critical: '极高风险' };
+    let html = '<div class="card border-primary"><div class="card-header bg-primary text-white d-flex justify-content-between"><span><i class="fas fa-clipboard-check me-1"></i>初步评估结果</span>' +
+        '<span>' + (riskLabels[result.risk_level] || result.risk_level || '-') + '</span></div><div class="card-body">';
+    html += '<h6>' + _escapeAssessmentText(result.level || '') + '</h6>';
+    if (result.score !== undefined) {
+        const pct = Math.max(0, Math.min(100, Math.round(result.score / result.max_score * 100)));
+        html += '<div class="mb-2"><div class="d-flex justify-content-between small"><span>量表得分</span><strong>' + result.score + ' / ' + result.max_score + '</strong></div>' +
+            '<div class="progress" style="height:8px"><div class="progress-bar" style="width:' + pct + '%"></div></div></div>';
+    }
+    if (result.dependent_items && result.dependent_items.length) html += '<p class="small mb-2"><strong>需协助项目：</strong>' + result.dependent_items.map(_assessmentLabelItem).join('、') + '</p>';
+    if (result.hazards && result.hazards.length) html += '<p class="small mb-2"><strong>风险点：</strong>' + result.hazards.map(h => _assessmentLabelItem(h.item)).join('、') + '</p>';
+    if (result.recommended_devices && result.recommended_devices.length) {
+        html += '<strong class="small">可能适用的辅具类别：</strong><ul class="small">' + result.recommended_devices.map(d => '<li><strong>' + _escapeAssessmentText(d.device) + '</strong>：' + _escapeAssessmentText(d.reason) + '</li>').join('') + '</ul>';
+    }
+    if (result.recommendations && result.recommendations.length) html += '<strong class="small">建议：</strong><ul class="small">' + result.recommendations.map(r => '<li>' + _escapeAssessmentText(r) + '</li>').join('') + '</ul>';
+    html += '<div class="alert alert-warning small py-2 mb-0">' + _escapeAssessmentText(result.disclaimer || '') + '</div></div></div>';
+    return html;
+}
+
+function _assessmentLabelItem(key) {
+    const labels = {};
+    Object.values(_assessmentForms).forEach(def => def.items.forEach(item => { labels[item[0]] = item[1]; }));
+    return labels[key] || key;
+}
+
+async function _previewAssessment() {
+    const type = document.getElementById('new-assessment-type').value;
+    const answers = _collectAnswers();
+    _validateAssessmentAnswers(type, answers);
+    const btn = document.getElementById('new-preview-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 评分中...';
+    try {
+        const resp = await _casesApi('POST', '/elderly/assessments', {assessment_type: type, answers});
+        const data = await resp.json();
+        const preview = document.getElementById('assessment-preview');
+        preview.innerHTML = _renderAssessmentResult(data.result);
+        preview.style.display = 'block';
+        preview.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-chart-simple me-1"></i>生成初步结果';
+    }
+}
+
+async function _submitNewCase() {
+    const btn = document.getElementById('new-submit-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    try {
+        const type = document.getElementById('new-assessment-type').value;
+        const answers = _collectAnswers();
+        _validateAssessmentAnswers(type, answers);
+        const body = {
+            assessment_type: type,
+            subject_code: document.getElementById('new-subject-code').value,
+            answers,
+        };
+        const parentUid = document.getElementById('new-parent-uid').value.trim();
+        if (parentUid) body.parent_case_uid = parentUid;
+        const fuDate = document.getElementById('new-followup-date').value;
+        if (fuDate) body.follow_up_date = fuDate;
+        const resp = await _casesApi('POST', '/elderly/cases', body);
+        const data = await resp.json();
+        _casesState.page = 1;
+        await _loadCases();
+        _showCaseDetail(data.case.case_uid);
+    } catch(e) {
+        alert('保存失败: ' + e.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-circle-plus me-1"></i>保存为正式案例';
+    }
+}
+
+async function _openStructuredAssessment(type) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('casesModal'));
+    modal.show();
+    _showView('new');
+    document.getElementById('new-parent-uid').value = '';
+    document.getElementById('new-assessment-type').value = type || 'adl';
+    await _renderDynamicForm();
+}
+
+async function _showCaseDetail(caseUid) {
+    _casesState.currentCaseUid = caseUid;
+    _showView('detail');
+    const container = document.getElementById('case-detail-content');
+    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    try {
+        const resp = await _casesApi('GET', '/elderly/cases/' + caseUid);
+        const data = await resp.json();
+        const c = data.case;
+        _casesState.currentVersion = c.version;
+        const result = c.rule_result || {};
+        const plan = c.intervention_plan || {};
+        const comp = c.comparison;
+        let html = '<div class="card"><div class="card-body">';
+        html += '<div class="d-flex justify-content-between align-items-start mb-3">';
+        html += '<div><h6>评估编号: ' + c.case_uid + '</h6>';
+        html += '<small class="text-muted">类型: ' + _assessmentLabel(c.assessment_type) + ' | 对象: ' + (c.subject_code || '-') + ' | 创建: ' + new Date(c.created_at).toLocaleString() + '</small></div>';
+        html += '<div>' + _riskBadge(result.risk_level) + ' ' + _statusBadge(c.status) + '</div>';
+        html += '</div>';
+        html += '<div class="row"><div class="col-md-6"><strong>风险等级:</strong> ' + (result.risk_level || '-') + '</div>';
+        html += '<div class="col-md-6"><strong>评价结论:</strong> ' + (result.level || '-') + '</div></div>';
+        if (result.score !== undefined) html += '<div class="mt-1"><strong>得分:</strong> ' + result.score + '</div>';
+        if (result.recommendations && result.recommendations.length) {
+            html += '<div class="mt-2"><strong>建议:</strong><ul>';
+            result.recommendations.forEach(r => { html += '<li>' + r + '</li>'; });
+            html += '</ul></div>';
+        }
+        if (c.explanation) {
+            html += '<div class="mt-2"><strong>个性化解释:</strong><div class="bg-light p-2 rounded small">' + c.explanation + '</div></div>';
+        }
+        if (plan.actions && plan.actions.length) {
+            html += '<div class="mt-2"><strong>干预方案:</strong><ul>';
+            plan.actions.forEach(a => { html += '<li><span class="badge bg-secondary">' + a.priority + '</span> ' + a.action + ' <small class="text-muted">(' + a.reason + ')</small></li>'; });
+            html += '</ul></div>';
+        }
+        if (comp) {
+            html += '<div class="mt-2 alert alert-info"><strong>随访对比:</strong> 趋势: ' + comp.trend + ' | 基线风险: ' + comp.baseline_risk + ' | 当前风险: ' + comp.current_risk + ' | 分数变化: ' + (comp.score_delta !== null ? comp.score_delta : '-') + '</div>';
+        }
+        if (c.reviewer_username) {
+            html += '<div class="mt-2"><strong>复核人:</strong> ' + c.reviewer_username + ' <small>(' + (c.reviewed_at ? new Date(c.reviewed_at).toLocaleString() : '') + ')</small>';
+            if (c.reviewer_comments) html += '<div class="bg-light p-2 rounded small mt-1">' + c.reviewer_comments + '</div>';
+            html += '</div>';
+        }
+        if (c.parent_case_uid) {
+            html += '<div class="mt-2"><small class="text-muted">基线评估: ' + c.parent_case_uid + '</small></div>';
+        }
+        html += '</div></div>';
+        container.innerHTML = html;
+
+        // Render attachments
+        _renderAttachments(c.attachments || [], caseUid);
+
+        // Show review section for doctors/admins
+        const isDoctor = currentUser && (currentUser.role === 'doctor' || currentUser.role === 'admin');
+        document.getElementById('detail-review-section').style.display = isDoctor ? 'block' : 'none';
+
+        // Show follow-up button only for patient/admin
+        const isPatient = currentUser && (currentUser.role === 'patient' || currentUser.role === 'admin');
+        document.getElementById('detail-followup-btn').style.display = isPatient ? 'inline-block' : 'none';
+    } catch(e) {
+        container.innerHTML = '<div class="alert alert-danger">' + e.message + '</div>';
+    }
+}
+
+function _renderAttachments(attachments, caseUid) {
+    const div = document.getElementById('detail-attachments-list');
+    if (!attachments.length) {
+        div.innerHTML = '<small class="text-muted">暂无附件</small>';
+        return;
+    }
+    div.innerHTML = '';
+    attachments.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'd-flex align-items-center justify-content-between border-bottom py-1';
+        const url = '/elderly/cases/' + caseUid + '/attachments/' + a.id;
+        item.innerHTML = '<div><i class="fas fa-file me-2"></i><small>' + a.filename + '</small> <span class="badge bg-light text-dark">' + (a.category || '-') + '</span></div>' +
+            '<a href="' + url + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i></a>';
+        div.appendChild(item);
+    });
+}
+
+async function _uploadAttachment() {
+    const fileInput = document.getElementById('attachment-file');
+    if (!fileInput.files[0]) { alert('请选择文件'); return; }
+    const btn = document.getElementById('attachment-upload-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const fd = new FormData();
+        fd.append('file', fileInput.files[0]);
+        fd.append('category', document.getElementById('attachment-category').value);
+        const resp = await _casesApi('POST', '/elderly/cases/' + _casesState.currentCaseUid + '/attachments', fd);
+        const data = await resp.json();
+        _renderAttachments(data.case.attachments || [], _casesState.currentCaseUid);
+        fileInput.value = '';
+    } catch(e) {
+        alert('上传失败: ' + e.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload me-1"></i>上传';
+    }
+}
+
+async function _submitReview() {
+    const btn = document.getElementById('review-submit-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const body = {
+            verdict: document.getElementById('review-verdict').value,
+            comments: document.getElementById('review-comments').value,
+            expected_version: _casesState.currentVersion,
+        };
+        const fuDate = document.getElementById('review-followup-date').value;
+        if (fuDate) body.follow_up_date = fuDate;
+        const resp = await _casesApi('POST', '/elderly/cases/' + _casesState.currentCaseUid + '/review', body);
+        const data = await resp.json();
+        _casesState.currentVersion = data.case.version;
+        alert('复核已提交');
+        _showCaseDetail(_casesState.currentCaseUid);
+        _loadCases();
+    } catch(e) {
+        alert('复核失败: ' + e.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-gavel me-1"></i>提交复核';
+    }
+}
+
+function _startFollowUp() {
+    // Navigate to new case form pre-filled with parent_case_uid
+    _showView('new');
+    document.getElementById('new-parent-uid').value = _casesState.currentCaseUid;
+    // Auto-select same assessment type by loading detail first
+    const detailCard = document.getElementById('case-detail-content');
+    const typeText = detailCard.querySelector('small');
+    // Simpler: just clear and let user pick
+    alert('请在下方选择与基线相同的评估类型进行复评');
+}
+
+async function _downloadReport() {
+    try {
+        const resp = await authFetch('/elderly/cases/' + _casesState.currentCaseUid + '/report');
+        if (!resp.ok) throw new Error('下载失败');
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'elderly_assessment_' + _casesState.currentCaseUid + '.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        alert('报告下载失败: ' + e.message);
+    }
+}
+
+// Bind events
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('open-cases-btn').addEventListener('click', async function() {
+        const modal = new bootstrap.Modal(document.getElementById('casesModal'));
+        modal.show();
+        _casesState.page = 1;
+        _showView('list');
+        await _loadCases();
+    });
+    document.getElementById('cases-refresh-btn').addEventListener('click', _loadCases);
+    document.getElementById('cases-filter-status').addEventListener('change', function() {
+        _casesState.status = this.value; _casesState.page = 1; _loadCases();
+    });
+    document.getElementById('cases-new-btn').addEventListener('click', async function() {
+        _showView('new');
+        document.getElementById('new-parent-uid').value = '';
+        await _renderDynamicForm();
+    });
+    document.getElementById('new-assessment-type').addEventListener('change', _renderDynamicForm);
+    document.getElementById('new-preview-btn').addEventListener('click', async () => { try { await _previewAssessment(); } catch(e) { alert(e.message); } });
+    document.getElementById('new-submit-btn').addEventListener('click', _submitNewCase);
+    document.getElementById('new-back-btn').addEventListener('click', () => _showView('list'));
+    document.getElementById('detail-back-btn').addEventListener('click', () => { _showView('list'); _loadCases(); });
+    document.getElementById('detail-report-btn').addEventListener('click', _downloadReport);
+    document.getElementById('detail-followup-btn').addEventListener('click', _startFollowUp);
+    document.getElementById('attachment-upload-btn').addEventListener('click', _uploadAttachment);
+    document.getElementById('review-submit-btn').addEventListener('click', _submitReview);
+});
+
+// =====================================================================
+// Family-care companionship module (follow codes / reminders / AI care
+// channel / caregiver alerts). All calls reuse authFetch; the backend
+// gates every endpoint behind ENABLE_FAMILY_CARE, returning 404 when off.
+// =====================================================================
+
+let _familyState = { pollTimer: null, elders: [], reminderEditingElder: null };
+
+function _esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function _familyApi(method, path, body) {
+    const opts = { method, headers: {} };
+    if (body !== undefined) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+    }
+    const resp = await authFetch(path, opts);
+    if (!resp.ok) {
+        let msg = '请求失败 (' + resp.status + ')';
+        try { const d = await resp.json(); if (d.detail) msg = d.detail; } catch(e) {}
+        throw new Error(msg);
+    }
+    return resp;
+}
+
+function _switchFamilyTab(tab) {
+    document.querySelectorAll('.family-tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === tab));
+    document.querySelectorAll('.family-tab-pane').forEach(p => p.style.display = p.getAttribute('data-tab') === tab ? 'block' : 'none');
+    if (tab === 'elders') _loadEldersList();
+    else if (tab === 'caregivers') _loadCaregiversList();
+    else if (tab === 'care') _loadCareMessages();
+    else if (tab === 'alerts') _loadAlertsList();
+}
+
+async function _genFollowCode() {
+    const btn = document.getElementById('gen-follow-code-btn');
+    const out = document.getElementById('follow-code-result');
+    btn.disabled = true;
+    try {
+        const resp = await _familyApi('POST', '/family/follow-code');
+        const data = await resp.json();
+        const expires = new Date(data.expires_at).toLocaleString();
+        out.innerHTML = '<div class="alert alert-success mb-0">您的关注码：<strong class="fs-5">' + _esc(data.code) + '</strong>' +
+            '<br><small class="text-muted">有效期至 ' + expires + '，念给家属输入即可</small></div>';
+    } catch(e) {
+        out.innerHTML = '<div class="alert alert-danger mb-0">' + _esc(e.message) + '</div>';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function _redeemFollowCode() {
+    const code = document.getElementById('redeem-code-input').value.trim();
+    const relation = document.getElementById('redeem-relation-input').value.trim();
+    const out = document.getElementById('redeem-code-result');
+    if (!code) { out.innerHTML = '<div class="alert alert-warning mb-0">请输入关注码</div>'; return; }
+    const btn = document.getElementById('redeem-code-btn');
+    btn.disabled = true;
+    try {
+        const resp = await _familyApi('POST', '/family/follow', { code, relation_label: relation || null });
+        const data = await resp.json();
+        out.innerHTML = '<div class="alert alert-success mb-0">已成功关注：' + _esc(data.link.elder_username) + '</div>';
+        document.getElementById('redeem-code-input').value = '';
+        document.getElementById('redeem-relation-input').value = '';
+    } catch(e) {
+        out.innerHTML = '<div class="alert alert-danger mb-0">' + _esc(e.message) + '</div>';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function _loadEldersList() {
+    const div = document.getElementById('elders-list');
+    div.innerHTML = '<div class="text-center text-muted py-3">加载中...</div>';
+    try {
+        const resp = await _familyApi('GET', '/family/elders');
+        const data = await resp.json();
+        _familyState.elders = data.elders || [];
+        if (!_familyState.elders.length) {
+            div.innerHTML = '<div class="text-muted small">您还没有关注任何长辈。请让长辈生成关注码并在上方"关注码"标签页输入。</div>';
+            return;
+        }
+        div.innerHTML = '';
+        _familyState.elders.forEach(link => {
+            const card = document.createElement('div');
+            card.className = 'card mb-2';
+            card.innerHTML = '<div class="card-body d-flex justify-content-between align-items-center">' +
+                '<div><strong>' + _esc(link.elder_username) + '</strong>' +
+                (link.relation_label ? ' <span class="badge bg-light text-dark">' + _esc(link.relation_label) + '</span>' : '') +
+                '<br><small class="text-muted">关注于 ' + new Date(link.created_at).toLocaleDateString() + '</small></div>' +
+                '<div class="d-flex gap-2">' +
+                '<button class="btn btn-sm btn-outline-primary btn-elder-reminders" data-elder="' + _esc(link.elder_username) + '"><i class="fas fa-bell me-1"></i>提醒任务</button>' +
+                '<button class="btn btn-sm btn-outline-danger btn-elder-revoke" data-link-id="' + link.id + '"><i class="fas fa-times"></i></button>' +
+                '</div></div>';
+            card.querySelector('.btn-elder-reminders').addEventListener('click', () => _openReminderModal(link.elder_username));
+            card.querySelector('.btn-elder-revoke').addEventListener('click', () => _revokeFamilyLink(link.id, _loadEldersList));
+            div.appendChild(card);
+        });
+    } catch(e) {
+        div.innerHTML = '<div class="alert alert-danger">' + _esc(e.message) + '</div>';
+    }
+}
+
+async function _loadCaregiversList() {
+    const div = document.getElementById('caregivers-list');
+    div.innerHTML = '<div class="text-center text-muted py-3">加载中...</div>';
+    try {
+        const resp = await _familyApi('GET', '/family/caregivers');
+        const data = await resp.json();
+        const list = data.caregivers || [];
+        if (!list.length) {
+            div.innerHTML = '<div class="text-muted small">还没有家属关注您。生成关注码并告知家属即可。</div>';
+            return;
+        }
+        div.innerHTML = '';
+        list.forEach(link => {
+            const card = document.createElement('div');
+            card.className = 'card mb-2';
+            card.innerHTML = '<div class="card-body d-flex justify-content-between align-items-center">' +
+                '<div><strong>' + _esc(link.caregiver_username) + '</strong>' +
+                (link.relation_label ? ' <span class="badge bg-light text-dark">' + _esc(link.relation_label) + '</span>' : '') +
+                '<br><small class="text-muted">关注于 ' + new Date(link.created_at).toLocaleDateString() + '</small></div>' +
+                '<button class="btn btn-sm btn-outline-danger btn-caregiver-revoke" data-link-id="' + link.id + '"><i class="fas fa-times"></i></button></div>';
+            card.querySelector('.btn-caregiver-revoke').addEventListener('click', () => _revokeFamilyLink(link.id, _loadCaregiversList));
+            div.appendChild(card);
+        });
+    } catch(e) {
+        div.innerHTML = '<div class="alert alert-danger">' + _esc(e.message) + '</div>';
+    }
+}
+
+async function _revokeFamilyLink(linkId, reload) {
+    if (!confirm('确定要解除这个关注关系吗？')) return;
+    try {
+        await _familyApi('DELETE', '/family/link/' + linkId);
+        if (reload) reload();
+    } catch(e) {
+        alert('操作失败: ' + e.message);
+    }
+}
+
+async function _loadCareMessages() {
+    const div = document.getElementById('care-messages');
+    div.innerHTML = '<div class="text-center text-muted py-3">加载中...</div>';
+    try {
+        const resp = await _familyApi('GET', '/care/messages');
+        const data = await resp.json();
+        const msgs = data.messages || [];
+        if (!msgs.length) {
+            div.innerHTML = '<div class="text-muted small text-center py-3">暂无关怀消息。家属设置提醒任务后，AI会在这里主动问候您。</div>';
+            return;
+        }
+        div.innerHTML = '';
+        msgs.forEach(m => {
+            const wrap = document.createElement('div');
+            wrap.className = 'mb-3';
+            let html = '<div class="d-flex mb-1"><div class="bg-light rounded p-2" style="max-width:85%;">' +
+                (m.task_type_label ? '<div class="small text-muted mb-1"><i class="fas fa-heart text-danger me-1"></i>' + _esc(m.task_type_label) + '</div>' : '') +
+                _esc(m.ai_message) + '</div></div>';
+            if (m.elder_reply) {
+                html += '<div class="d-flex justify-content-end mb-1"><div class="bg-primary text-white rounded p-2" style="max-width:85%;">' + _esc(m.elder_reply) + '</div></div>';
+            } else {
+                html += '<div class="text-end"><button class="btn btn-sm btn-outline-primary btn-quick-reply" data-log-id="' + m.id + '">回复</button></div>';
+            }
+            wrap.innerHTML = html;
+            const quickBtn = wrap.querySelector('.btn-quick-reply');
+            if (quickBtn) {
+                quickBtn.addEventListener('click', () => {
+                    document.getElementById('care-reply-input').setAttribute('data-log-id', m.id);
+                    document.getElementById('care-reply-input').focus();
+                });
+            }
+            div.appendChild(wrap);
+        });
+        div.scrollTop = div.scrollHeight;
+        // Default the reply box to the most recent un-replied message, if any.
+        const pending = msgs.filter(m => !m.elder_reply).pop();
+        if (pending) document.getElementById('care-reply-input').setAttribute('data-log-id', pending.id);
+    } catch(e) {
+        div.innerHTML = '<div class="alert alert-danger">' + _esc(e.message) + '</div>';
+    }
+}
+
+async function _sendCareReply() {
+    const input = document.getElementById('care-reply-input');
+    const text = input.value.trim();
+    const logId = input.getAttribute('data-log-id');
+    if (!text) return;
+    if (!logId) { alert('没有可回复的关怀消息'); return; }
+    const btn = document.getElementById('care-reply-btn');
+    btn.disabled = true;
+    try {
+        await _familyApi('POST', '/care/reply', { log_id: parseInt(logId, 10), text });
+        input.value = '';
+        input.removeAttribute('data-log-id');
+        await _loadCareMessages();
+    } catch(e) {
+        alert('发送失败: ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function _loadAlertsList() {
+    const div = document.getElementById('alerts-list');
+    div.innerHTML = '<div class="text-center text-muted py-3">加载中...</div>';
+    try {
+        const resp = await _familyApi('GET', '/family/alerts');
+        const data = await resp.json();
+        const alerts = data.alerts || [];
+        _updateAlertsBadge(alerts.filter(a => !a.is_read).length);
+        if (!alerts.length) {
+            div.innerHTML = '<div class="text-muted small text-center py-3">暂无预警通知</div>';
+            return;
+        }
+        div.innerHTML = '';
+        alerts.forEach(a => {
+            const item = document.createElement('div');
+            item.className = 'card mb-2' + (a.is_read ? '' : ' border-danger');
+            item.innerHTML = '<div class="card-body py-2">' +
+                '<div class="d-flex justify-content-between align-items-start">' +
+                '<div>' + (a.is_read ? '' : '<span class="badge bg-danger me-1">未读</span>') +
+                _esc(a.summary) + '<br><small class="text-muted">' + new Date(a.created_at).toLocaleString() + '</small></div>' +
+                (a.is_read ? '' : '<button class="btn btn-sm btn-outline-secondary btn-alert-read" data-alert-id="' + a.id + '">标记已读</button>') +
+                '</div></div>';
+            const readBtn = item.querySelector('.btn-alert-read');
+            if (readBtn) readBtn.addEventListener('click', () => _markAlertRead(a.id));
+            div.appendChild(item);
+        });
+    } catch(e) {
+        div.innerHTML = '<div class="alert alert-danger">' + _esc(e.message) + '</div>';
+    }
+}
+
+async function _markAlertRead(alertId) {
+    try {
+        await _familyApi('POST', '/family/alerts/' + alertId + '/read');
+        await _loadAlertsList();
+    } catch(e) {
+        alert('操作失败: ' + e.message);
+    }
+}
+
+function _updateAlertsBadge(count) {
+    const badge = document.getElementById('alerts-badge');
+    if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+}
+
+async function _pollAlertsBadge() {
+    try {
+        const resp = await _familyApi('GET', '/family/alerts?unread_only=true');
+        const data = await resp.json();
+        _updateAlertsBadge((data.alerts || []).length);
+    } catch(e) { /* silent: badge is a soft-fail enhancement */ }
+}
+
+// ---- Reminder task modal ----
+
+function _toggleReminderScheduleFields() {
+    const type = document.getElementById('reminder-schedule-type').value;
+    document.getElementById('reminder-time-wrap').style.display = (type === 'daily' || type === 'weekly') ? 'block' : 'none';
+    document.getElementById('reminder-weekday-wrap').style.display = (type === 'weekly') ? 'block' : 'none';
+    document.getElementById('reminder-datetime-wrap').style.display = (type === 'once') ? 'block' : 'none';
+}
+
+function _toggleReminderCustomPrompt() {
+    const type = document.getElementById('reminder-task-type').value;
+    document.getElementById('reminder-custom-prompt-wrap').style.display = (type === 'custom') ? 'block' : 'none';
+}
+
+async function _openReminderModal(elderUsername) {
+    _familyState.reminderEditingElder = elderUsername;
+    document.getElementById('reminder-elder-username').value = elderUsername;
+    document.getElementById('reminder-custom-prompt').value = '';
+    _toggleReminderScheduleFields();
+    _toggleReminderCustomPrompt();
+    const modal = new bootstrap.Modal(document.getElementById('reminderModal'));
+    modal.show();
+    await _loadReminderTasks(elderUsername);
+}
+
+async function _loadReminderTasks(elderUsername) {
+    const div = document.getElementById('reminder-existing-list');
+    div.innerHTML = '<div class="text-center text-muted py-2">加载中...</div>';
+    try {
+        const resp = await _familyApi('GET', '/family/elders/' + encodeURIComponent(elderUsername) + '/reminders');
+        const data = await resp.json();
+        const tasks = data.tasks || [];
+        if (!tasks.length) {
+            div.innerHTML = '<div class="text-muted small">暂无提醒任务</div>';
+            return;
+        }
+        div.innerHTML = '';
+        tasks.forEach(t => {
+            const row = document.createElement('div');
+            row.className = 'd-flex justify-content-between align-items-center border-bottom py-1';
+            let scheduleDesc = '';
+            if (t.schedule_type === 'daily') scheduleDesc = '每天 ' + t.schedule_time;
+            else if (t.schedule_type === 'weekly') scheduleDesc = '每周' + ['一','二','三','四','五','六','日'][t.schedule_weekday] + ' ' + t.schedule_time;
+            else scheduleDesc = new Date(t.schedule_datetime).toLocaleString() + '（一次）';
+            row.innerHTML = '<div><span class="badge bg-secondary me-1">' + _esc(t.task_type_label) + '</span>' +
+                '<small>' + _esc(scheduleDesc) + '</small>' +
+                (t.status === 'paused' ? ' <span class="badge bg-warning text-dark">已暂停</span>' : '') + '</div>' +
+                '<div class="d-flex gap-1">' +
+                '<button class="btn btn-sm btn-outline-secondary btn-task-toggle" data-task-id="' + t.id + '" data-status="' + t.status + '">' +
+                (t.status === 'active' ? '暂停' : '启用') + '</button>' +
+                '<button class="btn btn-sm btn-outline-danger btn-task-delete" data-task-id="' + t.id + '"><i class="fas fa-trash"></i></button>' +
+                '</div>';
+            row.querySelector('.btn-task-toggle').addEventListener('click', async function() {
+                const newStatus = this.getAttribute('data-status') === 'active' ? 'paused' : 'active';
+                try {
+                    await _familyApi('PATCH', '/family/reminders/' + t.id, { status: newStatus });
+                    await _loadReminderTasks(elderUsername);
+                } catch(e) { alert('操作失败: ' + e.message); }
+            });
+            row.querySelector('.btn-task-delete').addEventListener('click', async function() {
+                if (!confirm('确定删除该提醒任务吗？')) return;
+                try {
+                    await _familyApi('DELETE', '/family/reminders/' + t.id);
+                    await _loadReminderTasks(elderUsername);
+                } catch(e) { alert('删除失败: ' + e.message); }
+            });
+            div.appendChild(row);
+        });
+    } catch(e) {
+        div.innerHTML = '<div class="alert alert-danger">' + _esc(e.message) + '</div>';
+    }
+}
+
+async function _submitReminderTask() {
+    const elderUsername = document.getElementById('reminder-elder-username').value;
+    const taskType = document.getElementById('reminder-task-type').value;
+    const scheduleType = document.getElementById('reminder-schedule-type').value;
+    const body = { task_type: taskType, schedule_type: scheduleType };
+    if (taskType === 'custom') body.custom_prompt = document.getElementById('reminder-custom-prompt').value.trim();
+    if (scheduleType === 'daily' || scheduleType === 'weekly') body.schedule_time = document.getElementById('reminder-time').value;
+    if (scheduleType === 'weekly') body.schedule_weekday = parseInt(document.getElementById('reminder-weekday').value, 10);
+    if (scheduleType === 'once') body.schedule_datetime = document.getElementById('reminder-datetime').value;
+
+    const btn = document.getElementById('reminder-submit-btn');
+    btn.disabled = true;
+    try {
+        await _familyApi('POST', '/family/elders/' + encodeURIComponent(elderUsername) + '/reminders', body);
+        await _loadReminderTasks(elderUsername);
+    } catch(e) {
+        alert('创建失败: ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const familyBtn = document.getElementById('open-family-btn');
+    if (!familyBtn) return;
+    familyBtn.addEventListener('click', async function() {
+        const modal = new bootstrap.Modal(document.getElementById('familyModal'));
+        modal.show();
+        _switchFamilyTab('follow');
+        if (!_familyState.pollTimer) {
+            _pollAlertsBadge();
+            _familyState.pollTimer = setInterval(_pollAlertsBadge, 30000);
+        }
+    });
+    document.querySelectorAll('.family-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => _switchFamilyTab(btn.getAttribute('data-tab')));
+    });
+    document.getElementById('gen-follow-code-btn').addEventListener('click', _genFollowCode);
+    document.getElementById('redeem-code-btn').addEventListener('click', _redeemFollowCode);
+    document.getElementById('care-reply-btn').addEventListener('click', _sendCareReply);
+    document.getElementById('care-reply-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); _sendCareReply(); }
+    });
+    document.getElementById('alerts-refresh-btn').addEventListener('click', _loadAlertsList);
+    document.getElementById('reminder-task-type').addEventListener('change', _toggleReminderCustomPrompt);
+    document.getElementById('reminder-schedule-type').addEventListener('change', _toggleReminderScheduleFields);
+    document.getElementById('reminder-submit-btn').addEventListener('click', _submitReminderTask);
+    // Kick off a soft background badge poll once initAuth() has had time to resolve currentUser.
+    setTimeout(() => { if (currentUser) _pollAlertsBadge(); }, 1500);
+});
+
+    </script>
+</body>
+</html>

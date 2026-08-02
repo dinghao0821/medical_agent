@@ -1,0 +1,20 @@
+{
+  "L6 Injection defence": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "L6 Medical safety critic": {
+    "accuracy": 1.0
+  },
+  "L6 Emergency triage": {
+    "recall": 1.0,
+    "precision": 1.0,
+    "accuracy": 1.0
+  },
+  "L2 Tool selection & param gate": {
+    "select_acc": 1.0,
+    "param_gate_acc": 1.0
+  }
+}

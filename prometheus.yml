@@ -1,0 +1,12 @@
+# Prometheus scrape config for the Multi-Agent Medical Assistant (P4).
+# Scrapes the FastAPI app's /metrics endpoint.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "medical-assistant"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8000"]

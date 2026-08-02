@@ -1,0 +1,16 @@
+# Lightweight dependencies for CI / offline unit tests.
+# Avoids heavy runtime deps (torch, langchain-openai, etc.) — the tests use fake
+# configs and only exercise the infrastructure services + their fallbacks.
+pytest==8.3.5
+ruff==0.10.0
+python-dotenv==1.0.1
+pydantic>=2,<3
+redis==5.2.1
+SQLAlchemy==2.0.39
+prometheus-client==0.21.1
+passlib==1.7.4
+bcrypt==4.2.1
+python-jose[cryptography]==3.3.0
+cryptography==44.0.2
+langgraph==0.3.9
+langgraph-checkpoint==2.0.26

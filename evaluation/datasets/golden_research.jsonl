@@ -1,0 +1,3 @@
+{"id": "res-001", "query": "Compare the effectiveness and safety of ACE inhibitors versus ARBs for hypertension in elderly patients", "min_subquestions": 2, "min_coverage": 0.6, "note": "comparative review needs decomposition"}
+{"id": "res-002", "query": "What are the current evidence-based fall prevention interventions for community-dwelling older adults?", "min_subquestions": 2, "min_coverage": 0.6, "note": "guideline synthesis"}
+{"id": "res-003", "query": "Summarize the diagnostic pathway and staging for early Alzheimer's disease", "min_subquestions": 2, "min_coverage": 0.5, "note": "multi-aspect topic"}

@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What is a brain tumor?",
+    "ground_truth": "A brain tumor is an abnormal growth of cells within the brain or the central spinal canal, which may be benign or malignant."
+  },
+  {
+    "question": "How is COVID-19 detected from a chest X-ray?",
+    "ground_truth": "Deep learning models classify chest X-ray images to detect COVID-19-associated lung abnormalities such as ground-glass opacities."
+  },
+  {
+    "question": "What deep learning techniques are used to detect brain tumors?",
+    "ground_truth": "Convolutional neural networks and segmentation models (e.g. U-Net) are commonly used to detect and segment brain tumors from MRI scans."
+  }
+]

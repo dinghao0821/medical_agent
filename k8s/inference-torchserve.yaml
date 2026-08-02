@@ -1,0 +1,110 @@
+# Model inference serving (TorchServe) — SKELETON.
+#
+# Purpose: move the PyTorch image models (brain tumor / skin lesion / chest x-ray)
+# out of the API process into a dedicated GPU-backed service. TorchServe's C++
+# backend bypasses the Python GIL and supports dynamic batching + GPU sharing.
+#
+# This is a starter manifest; you must first package each model into a .mar
+# archive (torch-model-archiver) and bake/mount them. The app would then call
+# this service over HTTP instead of running inference in-process (a follow-up
+# integration; see docs/P5_IMPLEMENTATION.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  namespace: medical-assistant
+  labels:
+    app: medical-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medical-inference
+  template:
+    metadata:
+      labels:
+        app: medical-inference
+    spec:
+      # Schedule onto GPU nodes (requires NVIDIA device plugin). Remove nodeSelector
+      # / gpu limits to run CPU-only.
+      nodeSelector:
+        # cloud.google.com/gke-accelerator: nvidia-tesla-t4   # example
+        {}
+      containers:
+        - name: torchserve
+          image: pytorch/torchserve:latest-gpu
+          args:
+            - "torchserve"
+            - "--start"
+            - "--model-store=/home/model-server/model-store"
+            - "--models=all"
+            - "--ncs"
+          ports:
+            - name: inference
+              containerPort: 8080
+            - name: management
+              containerPort: 8081
+            - name: metrics
+              containerPort: 8082
+          volumeMounts:
+            - name: model-store
+              mountPath: /home/model-server/model-store
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"     # requires a GPU node pool + device plugin
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        # Provide the .mar archives via a PVC (pre-populated) or an initContainer
+        # that downloads them from object storage.
+        - name: model-store
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference
+  namespace: medical-assistant
+spec:
+  selector:
+    app: medical-inference
+  ports:
+    - name: inference
+      port: 8080
+      targetPort: 8080
+    - name: management
+      port: 8081
+      targetPort: 8081
+    - name: metrics
+      port: 8082
+      targetPort: 8082
+---
+# Autoscale inference on CPU (swap to GPU/custom metrics via KEDA/Prometheus adapter).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: inference-hpa
+  namespace: medical-assistant
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inference
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

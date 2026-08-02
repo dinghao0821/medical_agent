@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-config
+  namespace: medical-assistant
+data:
+  # ---- server / scale-out ----
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  DEBUG: "false"
+  WORKERS: "2"
+
+  # ---- session sharing / infra (in-cluster service DNS) ----
+  CHECKPOINTER_BACKEND: "redis"
+  REDIS_URL: "redis://redis:6379/0"
+  QDRANT_URL: "http://qdrant:6333"
+
+  # ---- P2: cache / rate limit / queue / object storage ----
+  ENABLE_CACHE: "true"
+  ENABLE_RATE_LIMIT: "true"
+  RATE_LIMIT_MAX_REQUESTS: "120"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+  ENABLE_TASK_QUEUE: "true"
+  CELERY_BROKER_URL: "redis://redis:6379/1"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  OBJECT_STORAGE_BACKEND: "s3"
+  S3_ENDPOINT_URL: "http://minio:9000"
+  S3_BUCKET: "medical-assistant"
+
+  # ---- P3: auth + persistence ----
+  ENABLE_AUTH: "false"
+  DATABASE_URL: "postgresql+psycopg2://medical:medical@postgres:5432/medical_assistant"
+  ENABLE_AUDIT: "true"
+  ENABLE_PII_MASKING: "true"
+
+  # ---- P4: observability ----
+  ENABLE_METRICS: "true"
+  ENABLE_JSON_LOGS: "true"
+  LOG_LEVEL: "INFO"
+
+  # Model config (non-secret)
+  MODEL_NAME: "qwen3-max"
+  VISION_MODEL: "qwen-vl-plus"
+  EMBEDDING_MODEL: "text-embedding-v4"
+  OPENAI_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"

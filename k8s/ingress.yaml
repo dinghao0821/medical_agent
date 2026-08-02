@@ -1,0 +1,26 @@
+# Ingress (nginx-ingress-controller). Routes external traffic to the app Service.
+# Key: disable proxy buffering so /chat/stream SSE tokens flush immediately, and
+# raise timeouts/body-size for slow LLM calls and image uploads.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: medical-ingress
+  namespace: medical-assistant
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: medical-assistant.local   # replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app
+                port:
+                  number: 8000

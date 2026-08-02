@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-07-29 16:14:18",
+  "suites_run": [
+    "tools"
+  ],
+  "suites": [
+    {
+      "name": "L2 Tool selection & param gate",
+      "passed": true,
+      "metrics": {
+        "select_acc": 1.0,
+        "param_gate_acc": 1.0
+      },
+      "threshold": {
+        "select_acc": 0.8,
+        "param_gate_acc": 1.0
+      },
+      "samples": 7,
+      "failures": [],
+      "skipped": false,
+      "skip_reason": ""
+    }
+  ]
+}

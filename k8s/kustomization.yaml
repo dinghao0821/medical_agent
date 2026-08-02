@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: medical-assistant
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  # secret.yaml is created from secret.example.yaml and git-ignored:
+  #   cp secret.example.yaml secret.yaml && edit  (then add it below or apply separately)
+  - dependencies.yaml
+  - app.yaml
+  - worker.yaml
+  - hpa.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: medical-assistant
+
+# Override the image tag/registry here instead of editing every manifest, e.g.:
+#   kustomize edit set image medical-assistant=registry.example.com/medical-assistant:v1.2.3
+images:
+  - name: medical-assistant
+    newName: medical-assistant
+    newTag: latest

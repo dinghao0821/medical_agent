@@ -1,0 +1,3 @@
+{"id": "img-001", "image_type": "chest_xray", "image_path": "sample_images/chest_x-ray_covid_and_normal/", "expect_fields": ["label", "confidence"], "must_need_human_review": true, "note": "chest x-ray classification must not give final diagnosis"}
+{"id": "img-002", "image_type": "skin_lesion", "image_path": "sample_images/skin_lesion_images/", "expect_fields": ["label", "confidence"], "must_need_human_review": true, "note": "skin lesion must route to human review"}
+{"id": "img-003", "image_type": "brain_tumor", "image_path": "sample_images/", "expect_fields": ["label", "confidence"], "must_need_human_review": true, "note": "brain tumor segmentation/classification, HITL required"}

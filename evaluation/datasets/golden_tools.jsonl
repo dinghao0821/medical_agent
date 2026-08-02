@@ -1,0 +1,7 @@
+{"id": "tool-001", "text": "Calculate the BMI for someone 170cm tall and 68kg", "expected_tool": "bmi_calculator", "expect_output": true, "note": "clear BMI intent, valid params"}
+{"id": "tool-002", "text": "Convert 500 lb to kg", "expected_tool": "unit_converter", "expect_output": true, "note": "unit conversion"}
+{"id": "tool-003", "text": "What is the drug info for paracetamol?", "expected_tool": "drug_info", "expect_output": true, "note": "drug reference lookup"}
+{"id": "tool-004", "text": "Estimate eGFR for creatinine 1.2, age 70, male", "expected_tool": "egfr_calculator", "expect_output": true, "note": "kidney function"}
+{"id": "tool-005", "text": "Tell me a joke about doctors", "expected_tool": null, "expect_output": false, "note": "no tool should match -> conversation"}
+{"id": "param-001", "text": "Calculate BMI for height 0cm and weight 68kg", "expected_tool": "bmi_calculator", "expect_output": false, "note": "invalid zero height -> tool declines (returns None)"}
+{"id": "param-002", "text": "just chatting, nothing to compute here", "expected_tool": null, "expect_output": false, "note": "no numeric params -> no tool"}

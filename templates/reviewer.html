@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资质审核控制台 — SAGE</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary:#2563eb; --success:#16a34a; --danger:#dc2626; --warning:#f59e0b; --bg:#f1f5f9; --card-bg:#fff; --border:#e2e8f0; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg); min-height:100vh; color:#0f172a; }
+        .topbar { background:linear-gradient(90deg,#1e293b,#0f172a); color:#f8fafc; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; }
+        .topbar h1 { font-size:18px; font-weight:700; }
+        .topbar .who { font-size:13px; color:#cbd5e1; }
+        .topbar a { color:#93c5fd; text-decoration:none; margin-left:16px; font-size:13px; }
+        .wrap { max-width:1100px; margin:28px auto; padding:0 20px; }
+        .card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+        .card h3 { font-size:15px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+        .badge { background:var(--warning); color:#fff; border-radius:20px; padding:2px 10px; font-size:12px; }
+        table { width:100%; border-collapse:collapse; }
+        th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
+        th { color:#64748b; font-weight:600; font-size:12px; text-transform:uppercase; }
+        .btn { border:none; border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer; color:#fff; margin-right:6px; }
+        .btn-view { background:var(--primary); }
+        .btn-ok { background:var(--success); }
+        .btn-no { background:var(--danger); }
+        .empty { color:#94a3b8; text-align:center; padding:30px; }
+        /* auth overlay */
+        .overlay { position:fixed; inset:0; background:rgba(15,23,42,.85); display:flex; align-items:center; justify-content:center; z-index:200; }
+        .auth-card { background:#1e293b; color:#e2e8f0; width:360px; padding:32px; border-radius:16px; }
+        .auth-card h3 { font-size:20px; margin-bottom:6px; text-align:center; }
+        .auth-card .sub { text-align:center; color:#94a3b8; font-size:13px; margin-bottom:20px; }
+        .auth-card input { width:100%; padding:11px 14px; margin-bottom:12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; }
+        .auth-btn { width:100%; padding:11px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-weight:600; cursor:pointer; }
+        .auth-error { color:#f87171; font-size:13px; margin-bottom:10px; display:none; }
+        .auth-error.show { display:block; }
+        .toast { position:fixed; top:20px; right:20px; background:#0f172a; color:#fff; padding:12px 18px; border-radius:8px; z-index:300; display:none; }
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:250; }
+        .modal .inner { background:#fff; border-radius:12px; padding:16px; max-width:90vw; max-height:90vh; overflow:auto; }
+        .modal img { max-width:100%; max-height:70vh; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1><i class="fas fa-user-shield me-2"></i>资质审核控制台</h1>
+        <div><span class="who" id="who">未登录</span><a href="#" id="logoutLink">退出</a></div>
+    </div>
+
+    <div class="wrap">
+        <div class="card">
+            <h3><i class="fas fa-id-card"></i> 待审核医生资质 <span class="badge" id="cnt">0</span></h3>
+            <table>
+                <thead><tr><th>用户名</th><th>邮箱</th><th>注册时间</th><th>操作</th></tr></thead>
+                <tbody id="tbody"><tr><td colspan="4" class="empty">加载中…</td></tr></tbody>
+            </table>
+        </div>
+        <p style="color:#94a3b8;font-size:13px;">仅审核通过的医生才能进入医生审核台并查看患者上传的影像。</p>
+
+        <div class="card">
+            <h3><i class="fas fa-users-cog"></i> 用户与角色管理</h3>
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <input type="text" id="userSearch" placeholder="按用户名搜索…" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+                <select id="roleFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;">
+                    <option value="">全部角色</option>
+                    <option value="patient">patient</option>
+                    <option value="doctor">doctor</option>
+                    <option value="admin">admin</option>
+                </select>
+                <button class="btn btn-view" id="userSearchBtn">搜索</button>
+            </div>
+            <table>
+                <thead><tr><th>用户名</th><th>邮箱</th><th>当前角色</th><th>注册时间</th><th>操作</th></tr></thead>
+                <tbody id="usersTbody"><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+            </table>
+            <p style="color:#94a3b8;font-size:13px;margin-top:10px;">
+                提升为 admin 需二次确认；系统不允许移除最后一位管理员；提升为 doctor 后仍需上传执业资格证等待审核，不会绕过资质认证。所有角色变更均写入审计日志。
+            </p>
+        </div>
+    </div>
+
+    <!-- Auth overlay -->
+    <div class="overlay" id="overlay">
+        <div class="auth-card">
+            <h3>管理员登录</h3>
+            <p class="sub">审核医生执业资格证</p>
+            <div class="auth-error" id="err"></div>
+            <input type="text" id="u" placeholder="用户名">
+            <input type="password" id="p" placeholder="密码">
+            <button class="auth-btn" id="loginBtn">登录</button>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid #334155;text-align:center;">
+                <a href="/" style="color:#94a3b8;font-size:13px;text-decoration:none;margin-left:0;">
+                    <i class="fas fa-arrow-left"></i> 返回主页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image modal -->
+    <div class="modal" id="modal"><div class="inner"><div id="modalBody"></div></div></div>
+    <div class="toast" id="toast"></div>
+
+<script>
+const API = '/auth';
+let token = localStorage.getItem('admin_token') || '';
+let me = null;
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2500); }
+function authFetch(url, opts){ opts=opts||{}; opts.headers=opts.headers||{}; if(token) opts.headers['Authorization']='Bearer '+token; return fetch(url,opts); }
+
+async function doLogin(){
+    const u=document.getElementById('u').value.trim();
+    const p=document.getElementById('p').value.trim();
+    const err=document.getElementById('err');
+    if(!u||!p){ err.textContent='请填写用户名和密码'; err.classList.add('show'); return; }
+    try{
+        const resp=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+        const data=await resp.json();
+        if(resp.ok && data.access_token){
+            if(data.role!=='admin'){ err.textContent='该账号不是管理员账号。'; err.classList.add('show'); return; }
+            token=data.access_token; localStorage.setItem('admin_token',token);
+            me={username:u,role:'admin'}; loadApp();
+        } else { err.textContent=data.detail||data.response||'登录失败'; err.classList.add('show'); }
+    }catch(e){ err.textContent='网络错误，请重试'; err.classList.add('show'); }
+}
+
+async function loadApp(){
+    try{
+        const resp=await authFetch(API+'/me'); if(!resp.ok) throw 0;
+        me=await resp.json();
+        if(me.role!=='admin'){ token=''; localStorage.removeItem('admin_token'); document.getElementById('overlay').style.display='flex'; return; }
+    }catch(e){ token=''; localStorage.removeItem('admin_token'); document.getElementById('overlay').style.display='flex'; return; }
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('who').textContent=me.username+' (管理员)';
+    loadPending();
+    loadUsers();
+    setInterval(loadPending, 15000);
+}
+
+// ===================== User & role management =====================
+function _esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadUsers(){
+    const search = document.getElementById('userSearch').value.trim();
+    const role = document.getElementById('roleFilter').value;
+    const tb = document.getElementById('usersTbody');
+    tb.innerHTML = '<tr><td colspan="5" class="empty">加载中…</td></tr>';
+    try{
+        const qs = new URLSearchParams();
+        if (search) qs.set('search', search);
+        if (role) qs.set('role', role);
+        const resp = await authFetch('/admin/users?' + qs.toString());
+        if (!resp.ok) {
+            let detail = '';
+            try { const errData = await resp.json(); detail = errData.detail || errData.response || ''; } catch(e) {}
+            if (resp.status === 404) {
+                tb.innerHTML = '<tr><td colspan="5" class="empty">加载失败（接口不存在，HTTP 404）：后端服务需要重启才能加载新增的用户管理接口，请重启 python app.py 后刷新本页面。</td></tr>';
+            } else {
+                tb.innerHTML = '<tr><td colspan="5" class="empty">加载失败（HTTP ' + resp.status + '）' + (detail ? '：' + _esc(detail) : '') + '</td></tr>';
+            }
+            return;
+        }
+        const data = await resp.json();
+        if (data.status !== 'success') { tb.innerHTML = '<tr><td colspan="5" class="empty">加载失败：返回数据格式异常</td></tr>'; return; }
+        const rows = data.users || [];
+        if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">没有匹配的用户</td></tr>'; return; }
+        tb.innerHTML = rows.map(function(u){
+            const t = u.created_at ? new Date(u.created_at).toLocaleString() : '-';
+            const isMe = u.username === me.username;
+            const options = ['patient','doctor','admin'].map(function(r){
+                return '<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+r+'</option>';
+            }).join('');
+            return '<tr>'
+                + '<td>' + _esc(u.username) + (isMe ? ' <span style="color:#94a3b8;font-size:11px;">(我)</span>' : '') + '</td>'
+                + '<td>' + _esc(u.email || '-') + '</td>'
+                + '<td><span class="badge" style="background:' + (u.role === 'admin' ? '#2563eb' : (u.role === 'doctor' ? '#16a34a' : '#94a3b8')) + '">' + u.role + '</span></td>'
+                + '<td>' + t + '</td>'
+                + '<td>'
+                + '<select class="role-select" data-username="' + _esc(u.username) + '" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);margin-right:6px;">' + options + '</select>'
+                + '<button class="btn btn-view btn-role-apply" data-username="' + _esc(u.username) + '">应用</button>'
+                + '</td></tr>';
+        }).join('');
+        tb.querySelectorAll('.btn-role-apply').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                const username = btn.getAttribute('data-username');
+                const select = tb.querySelector('.role-select[data-username="' + username.replace(/"/g,'\\"') + '"]');
+                applyRoleChange(username, select.value);
+            });
+        });
+    }catch(e){ tb.innerHTML = '<tr><td colspan="5" class="empty">网络错误：' + _esc(e.message || String(e)) + '</td></tr>'; }
+}
+
+async function applyRoleChange(username, newRole){
+    if (newRole === 'admin' && !confirm('确定要将 "' + username + '" 提升为管理员吗？管理员拥有审核医生资质、修改任意用户角色的权限，请谨慎操作。')) {
+        return;
+    }
+    if (newRole !== 'admin' && username === me.username) {
+        if (!confirm('您正在修改自己的角色为 "' + newRole + '"，操作后可能会立即失去管理员权限，确定继续吗？')) return;
+    }
+    try{
+        const resp = await authFetch('/admin/users/' + encodeURIComponent(username) + '/role', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ role: newRole })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.status === 'success') {
+            toast('已将 ' + username + ' 的角色更新为 ' + newRole);
+            loadUsers();
+        } else {
+            toast(data.detail || data.response || '操作失败');
+        }
+    }catch(e){ toast('网络错误'); }
+}
+
+async function loadPending(){
+    try{
+        const resp=await authFetch('/admin/doctors/pending');
+        const data=await resp.json();
+        if(data.status!=='success') return;
+        const rows=data.doctors||[];
+        document.getElementById('cnt').textContent=rows.length;
+        const tb=document.getElementById('tbody');
+        if(!rows.length){ tb.innerHTML='<tr><td colspan="4" class="empty">暂无待审核医生</td></tr>'; return; }
+        tb.innerHTML=rows.map(function(r){
+            var t=r.created_at?new Date(r.created_at).toLocaleString():'-';
+            return '<tr>'
+                +'<td>'+r.username+'</td>'
+                +'<td>'+(r.email||'-')+'</td>'
+                +'<td>'+t+'</td>'
+                +'<td>'
+                +'<button class="btn btn-view" onclick="viewLicense(\''+r.username+'\')">查看资格证</button>'
+                +'<button class="btn btn-ok" onclick="decide(\''+r.username+'\',\'approved\')">通过</button>'
+                +'<button class="btn btn-no" onclick="decide(\''+r.username+'\',\'rejected\')">拒绝</button>'
+                +'</td></tr>';
+        }).join('');
+    }catch(e){ console.error(e); }
+}
+
+async function viewLicense(username){
+    try{
+        const resp=await authFetch('/admin/doctors/license/'+encodeURIComponent(username));
+        if(!resp.ok){ toast('无法加载资格证'); return; }
+        const blob=await resp.blob();
+        const url=URL.createObjectURL(blob);
+        const body=document.getElementById('modalBody');
+        if(blob.type==='application/pdf'){
+            body.innerHTML='<iframe src="'+url+'" style="width:80vw;height:80vh;border:none;"></iframe>';
+        } else {
+            body.innerHTML='<img src="'+url+'">';
+        }
+        document.getElementById('modal').style.display='flex';
+    }catch(e){ toast('加载失败'); }
+}
+
+async function decide(username, verdict){
+    let comments=null;
+    if(verdict==='rejected'){ comments=prompt('请填写拒绝原因（将展示给该医生）：')||''; }
+    try{
+        const resp=await authFetch('/admin/doctors/'+encodeURIComponent(username)+'/review',{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({verdict:verdict, comments:comments})
+        });
+        const data=await resp.json();
+        if(resp.ok && data.status==='success'){ toast(verdict==='approved'?'已通过':'已拒绝'); loadPending(); }
+        else { toast(data.detail||data.response||'操作失败'); }
+    }catch(e){ toast('网络错误'); }
+}
+
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('logoutLink').addEventListener('click', function(e){ e.preventDefault(); token=''; localStorage.removeItem('admin_token'); location.reload(); });
+document.getElementById('modal').addEventListener('click', function(){ this.style.display='none'; document.getElementById('modalBody').innerHTML=''; });
+document.getElementById('p').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+document.getElementById('userSearchBtn').addEventListener('click', loadUsers);
+document.getElementById('userSearch').addEventListener('keydown', function(e){ if(e.key==='Enter') loadUsers(); });
+document.getElementById('roleFilter').addEventListener('change', loadUsers);
+
+if(token){ loadApp(); } else { document.getElementById('overlay').style.display='flex'; }
+</script>
+</body>
+</html>
